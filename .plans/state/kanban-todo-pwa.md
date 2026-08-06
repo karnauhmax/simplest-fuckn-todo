@@ -53,6 +53,8 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — `InlineEdit` was built in part 4 rather than part 5.** Part 4 asks for "List components with inline edit", which is the same component cards need; part 5 reuses it instead of introducing a second one.
 - **2026-08-06 — the design is "paper": warm off-white ground, Instrument Serif for names, IBM Plex Mono for everything else, one vermilion accent, hairlines instead of shadows.** Chosen over a Trello-like card-and-shadow look, which the plan explicitly rules out. The serif carries board and list names, mono carries card text and chrome, so the two never compete. The only element allowed to lift off the plane is the drag overlay — that is what makes a drag legible. Fonts come from Google Fonts over the network, which is consistent with an online-only app but means they are not precached by the service worker.
 - **2026-08-06 — the first styling attempt shipped a full-width ruled-paper background and was thrown away.** Every automated check passed while the page rendered stray rules across dead space below the columns. Screenshots are the check for this part; the suite cannot see layout.
+- **2026-08-06 — `runtimeCaching: []` — the service worker precaches the shell and caches nothing at runtime.** A cached board would be a stale board, and a cached 401 would look like a lockout; the spec already says online-only. `navigateFallbackDenylist: [/^\/api\//]` keeps the SPA fallback from swallowing API routes.
+- **2026-08-06 — icons are generated from one SVG by `scripts/make-icons.mjs` (committed, not a build step).** Three kanban columns in the app's own ink and vermilion on paper. Regenerating is a deliberate act, so the icons cannot silently drift; `sharp` is the only reason it is a dev dependency. This replaces the earlier "placeholder icons" note — they now match the design.
 - **2026-08-06 — dark mode is a token inversion, not a second design.** `prefers-color-scheme: dark` swaps six CSS variables and nothing else, so there is one layout to maintain.
 - **2026-08-06 — deleting a card does not ask for confirmation; deleting a list or board still does.** A card is one line of text that costs seconds to retype, and cards are deleted constantly — a prompt on every one is noise. Lists and boards hide their contents behind a single click, which is what the prompt is for.
 - **2026-08-06 — card actions address a card by `listId` + `cardId` rather than searching the board for the id.** The UI always knows which list it is acting in, and part 6 moves cards between lists, where both ends are named explicitly anyway.
@@ -154,14 +156,14 @@ One pass over the whole surface: type scale, spacing, near-black/near-white pale
 - Last run: 2026-08-06 — `npm run test` → `Test Files 9 passed (9) / Tests 93 passed (93)`; `npx tsc -b --noEmit` → `tsc exit=0`. Screenshots taken at 1280×860 and on an iPhone 13 profile: unlock screen, full board, drag-in-progress (faded origin card + tilted elevated overlay + neighbours parted), inline edit, and a focus ring. Drag re-verified after restyling: `after card drag: EMPTY[one edited with spaces], TODAY[three] | PUTs: 1`, identical after reload.
 - Depends on: 7
 
-### 8. PWA installability — `todo`
+### 8. PWA installability — `done`
 
 `vite-plugin-pwa` (generateSW): app-shell precache only, `/api/*` uncached; manifest `display: standalone`, 192/512 + maskable icons, apple-touch-icon + iOS meta; README documents A2HS steps and the iOS storage-silo secret re-entry.
 
 **Done when** desktop Chrome offers the install prompt and the installed app launches standalone, the manifest and icons are served, and the iPhone Add-to-Home-Screen steps (with the secret re-entry note) are documented.
 
-- Check: after `npm run build` and serving the preview build, the manifest URL returns JSON containing `"display": "standalone"` and both icon URLs return 200; Chrome shows the install affordance and the installed window is standalone; `grep -i "add to home screen"` and `grep -i "silo\|re-enter"` in README both match.
-- Last run: not yet
+- Check: after `npm run build` and serving the preview build, the manifest URL returns JSON containing `"display": "standalone"` and both icon URLs return 200; Chrome shows the install affordance and the installed window is standalone; `grep -i "add to home screen"` and `grep -i "silo\|re-enter"` in README both match. The install affordance itself cannot be observed headlessly — confirm it in a real Chrome window.
+- Last run: 2026-08-06 — `npm run build` → `precache 16 entries (279.29 KiB)`, `dist/sw.js` generated. Against `vite preview` on :4173: manifest returns `"display":"standalone"` with all three icons; `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `sw.js` all `200`. In Chromium: `service worker: {"registered":true,"scope":"http://localhost:4173/","active":true}`; `precached entries: 10`; `any /api cached: 0`; `shell present: true | css: true | icons: 5`; deep link `/some/deep/link` → `200` and renders. `grep -ci "add to home screen" README.md` → 1; `grep -ci silo README.md` → 1. Install affordance in a real Chrome window: not verified here.
 - Depends on: 3
 
 ### 9. E2E harness and golden path — `todo`
