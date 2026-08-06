@@ -53,6 +53,9 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — `InlineEdit` was built in part 4 rather than part 5.** Part 4 asks for "List components with inline edit", which is the same component cards need; part 5 reuses it instead of introducing a second one.
 - **2026-08-06 — the design is "paper": warm off-white ground, Instrument Serif for names, IBM Plex Mono for everything else, one vermilion accent, hairlines instead of shadows.** Chosen over a Trello-like card-and-shadow look, which the plan explicitly rules out. The serif carries board and list names, mono carries card text and chrome, so the two never compete. The only element allowed to lift off the plane is the drag overlay — that is what makes a drag legible. Fonts come from Google Fonts over the network, which is consistent with an online-only app but means they are not precached by the service worker.
 - **2026-08-06 — the first styling attempt shipped a full-width ruled-paper background and was thrown away.** Every automated check passed while the page rendered stray rules across dead space below the columns. Screenshots are the check for this part; the suite cannot see layout.
+- **2026-08-06 — every E2E locator naming a card must be `exact`.** dnd-kit gives each sortable `li` `role="button"` with an accessible name concatenating the card title and its delete label, so `getByRole('button', { name: title })` matches three elements. `card()` and `deleteCardButton()` in `e2e/helpers.ts` exist so this is decided once.
+- **2026-08-06 — `dragTo` waits for the drag overlay to unmount, not for a timeout.** dnd-kit swallows the click that lands during its drop animation, so a test that clicks straight after a drop silently does nothing and fails later somewhere unrelated — which is exactly how it presented. Waiting on our own `.overlay-list`/`.overlay-card` disappearing is a deterministic end-of-gesture signal.
+- **2026-08-06 — E2E runs single-worker against one shared database.** Two Playwright webServers (the dev adapter and Vite) with one ephemeral Mongo behind them; parallel specs would race on the same boards collection. Specs create their own board and assert only within it.
 - **2026-08-06 — `runtimeCaching: []` — the service worker precaches the shell and caches nothing at runtime.** A cached board would be a stale board, and a cached 401 would look like a lockout; the spec already says online-only. `navigateFallbackDenylist: [/^\/api\//]` keeps the SPA fallback from swallowing API routes.
 - **2026-08-06 — icons are generated from one SVG by `scripts/make-icons.mjs` (committed, not a build step).** Three kanban columns in the app's own ink and vermilion on paper. Regenerating is a deliberate act, so the icons cannot silently drift; `sharp` is the only reason it is a dev dependency. This replaces the earlier "placeholder icons" note — they now match the design.
 - **2026-08-06 — dark mode is a token inversion, not a second design.** `prefers-color-scheme: dark` swaps six CSS variables and nothing else, so there is one layout to maintain.
@@ -166,14 +169,14 @@ One pass over the whole surface: type scale, spacing, near-black/near-white pale
 - Last run: 2026-08-06 — `npm run build` → `precache 16 entries (279.29 KiB)`, `dist/sw.js` generated. Against `vite preview` on :4173: manifest returns `"display":"standalone"` with all three icons; `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `sw.js` all `200`. In Chromium: `service worker: {"registered":true,"scope":"http://localhost:4173/","active":true}`; `precached entries: 10`; `any /api cached: 0`; `shell present: true | css: true | icons: 5`; deep link `/some/deep/link` → `200` and renders. `grep -ci "add to home screen" README.md` → 1; `grep -ci silo README.md` → 1. Install affordance in a real Chrome window: not verified here.
 - Depends on: 3
 
-### 9. E2E harness and golden path — `todo`
+### 9. E2E harness and golden path — `done`
 
 Dev adapter (Node server mounting the real handler functions under the Vite proxy, ephemeral mongodb-memory-server); Playwright `chromium` via `webServer`; golden-path spec: unlock → create board → 2 lists → cards → drag across lists → reorder → edit → delete → reload → identical state.
 
 **Done when** the golden-path spec passes in chromium against the dev adapter, ending with the reload asserting identical state.
 
-- Check: `npm run e2e` (chromium project) passes with the golden-path spec listed as passed in the Playwright report; `npm run test` still green.
-- Last run: not yet
+- Check: `npm run e2e` (chromium project) passes with the golden-path spec listed as passed in the Playwright report; `npm run test` still green. `reuseExistingServer` means a stale dev server from an earlier session can serve the run — if a spec fails inexplicably, kill everything on :5173/:3001 and re-run before debugging the app.
+- Last run: 2026-08-06 — `npm run e2e` → `1 passed (3.9s)`, `✓ 1 [chromium] › e2e/golden-path.spec.ts:15:1 › the whole loop: unlock, build a board, rearrange it, and reload into the same state`. `npm run test` → `Tests 93 passed (93)`; `npx tsc -b --noEmit` → `tsc exit=0`.
 - Depends on: 7
 
 ### 10. E2E hardening: auth, races, touch, PWA smoke — `todo`
