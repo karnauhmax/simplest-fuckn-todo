@@ -1,6 +1,7 @@
 import type { Board, BoardSummary } from '../../shared/types.js';
 
 const SECRET_KEY = 'simplest-fuckn-todo:secret';
+const ACTIVE_BOARD_KEY = 'simplest-fuckn-todo:active-board';
 
 export class UnauthorizedError extends Error {
   constructor() {
@@ -19,6 +20,14 @@ export function saveSecret(secret: string): void {
 
 export function clearSecret(): void {
   localStorage.removeItem(SECRET_KEY);
+}
+
+export function loadActiveBoardId(): string | null {
+  return localStorage.getItem(ACTIVE_BOARD_KEY);
+}
+
+export function rememberActiveBoardId(id: string): void {
+  localStorage.setItem(ACTIVE_BOARD_KEY, id);
 }
 
 interface RequestOptions {

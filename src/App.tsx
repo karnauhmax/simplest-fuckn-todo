@@ -7,7 +7,9 @@ import {
   deleteBoard,
   fetchBoard,
   fetchBoards,
+  loadActiveBoardId,
   loadSecret,
+  rememberActiveBoardId,
 } from './api/client.js';
 import { createWriteQueue } from './api/writeQueue.js';
 import { boardReducer, type BoardAction } from './state/boardReducer.js';
@@ -18,7 +20,7 @@ import { BoardView } from './components/BoardView.js';
 export function App() {
   const [unlocked, setUnlocked] = useState(() => loadSecret() !== null);
   const [summaries, setSummaries] = useState<BoardSummary[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(() => loadActiveBoardId());
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +84,13 @@ export function App() {
         });
     };
   });
+
+  // Left in place when the app locks or the board is deleted: a stale id is
+  // harmless (membership is checked on load) and surviving a lock means an
+  // unlock returns you to the board you were on.
+  useEffect(() => {
+    if (activeId) rememberActiveBoardId(activeId);
+  }, [activeId]);
 
   useEffect(() => {
     if (!unlocked) return;

@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { App } from '../../src/App.js';
 
 const SECRET_KEY = 'simplest-fuckn-todo:secret';
+const ACTIVE_BOARD_KEY = 'simplest-fuckn-todo:active-board';
 
 function respond(status: number, body: unknown) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status }));
@@ -54,6 +55,35 @@ test('a 401 flips the app back to locked and discards the stored secret', async 
 
   expect(await screen.findByLabelText('Secret')).toBeInTheDocument();
   expect(localStorage.getItem(SECRET_KEY)).toBeNull();
+});
+
+test('the board you were last on is restored, not the first one', async () => {
+  localStorage.setItem(SECRET_KEY, 'open-sesame');
+  localStorage.setItem(ACTIVE_BOARD_KEY, 'b2');
+  stubRoutes({
+    '/api/boards': [
+      { id: 'b1', name: 'Alpha' },
+      { id: 'b2', name: 'Zeta' },
+    ],
+    '/api/boards/b2': { id: 'b2', name: 'Zeta', lists: [] },
+  });
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Zeta', level: 2 })).toBeInTheDocument();
+  expect(screen.getByLabelText('Board')).toHaveValue('b2');
+});
+
+test('a remembered board that no longer exists falls back to the first one', async () => {
+  localStorage.setItem(SECRET_KEY, 'open-sesame');
+  localStorage.setItem(ACTIVE_BOARD_KEY, 'deleted-board');
+  stubRoutes({
+    '/api/boards': [{ id: 'b1', name: 'Alpha' }],
+    '/api/boards/b1': { id: 'b1', name: 'Alpha', lists: [] },
+  });
+  render(<App />);
+
+  expect(await screen.findByRole('heading', { name: 'Alpha', level: 2 })).toBeInTheDocument();
+  expect(localStorage.getItem(ACTIVE_BOARD_KEY)).toBe('b1');
 });
 
 test('with no boards at all the app invites creating one', async () => {
