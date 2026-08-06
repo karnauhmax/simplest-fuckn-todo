@@ -11,6 +11,7 @@ export const CARDS_PREFIX = 'cards:';
 
 interface Props {
   list: List;
+  index: number;
   onRename: (name: string) => void;
   onDelete: () => void;
   onAddCard: (title: string) => void;
@@ -20,6 +21,7 @@ interface Props {
 
 export function ListColumn({
   list,
+  index,
   onRename,
   onDelete,
   onAddCard,
@@ -30,6 +32,7 @@ export function ListColumn({
     id: `${LIST_PREFIX}${list.id}`,
   });
   const cards = useDroppable({ id: `${CARDS_PREFIX}${list.id}` });
+  const over = cards.isOver;
 
   function remove() {
     if (!window.confirm(`Delete list "${list.name}"?`)) return;
@@ -39,21 +42,38 @@ export function ListColumn({
   return (
     <section
       ref={setNodeRef}
+      className="list"
       aria-label={`List ${list.name}`}
       data-dragging={isDragging || undefined}
-      style={{ transform: CSS.Translate.toString(transform), transition }}
+      data-over={over || undefined}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        transition,
+        ['--index' as string]: index,
+      }}
     >
-      <header {...attributes} {...listeners}>
-        <InlineEdit value={list.name} label="List name" onCommit={onRename} />
-        <button type="button" onClick={remove} aria-label={`Delete list ${list.name}`}>
-          Delete
+      <header className="list__head" {...attributes} {...listeners}>
+        <InlineEdit
+          value={list.name}
+          label="List name"
+          className="list__title"
+          onCommit={onRename}
+        />
+        <span className="list__count">{list.cards.length}</span>
+        <button
+          type="button"
+          className="ghost ghost--danger"
+          onClick={remove}
+          aria-label={`Delete list ${list.name}`}
+        >
+          Del
         </button>
       </header>
       <SortableContext
         items={list.cards.map((card) => card.id)}
         strategy={verticalListSortingStrategy}
       >
-        <ul ref={cards.setNodeRef}>
+        <ul className="list__cards" ref={cards.setNodeRef}>
           {list.cards.map((card) => (
             <SortableCardItem
               key={card.id}
@@ -64,7 +84,9 @@ export function ListColumn({
           ))}
         </ul>
       </SortableContext>
-      <QuickAdd listName={list.name} onAdd={onAddCard} />
+      <div className="list__foot">
+        <QuickAdd listName={list.name} onAdd={onAddCard} />
+      </div>
     </section>
   );
 }

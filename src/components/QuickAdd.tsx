@@ -19,15 +19,21 @@ export function QuickAdd({ listName, onAdd }: Props) {
   }
 
   return (
-    <form onSubmit={submit}>
+    <form className="quick-add" onSubmit={submit}>
       <input
         ref={input}
+        className="field"
         aria-label={`Add a card to ${listName}`}
         placeholder="Add a card"
         value={draft}
         onChange={(event) => setDraft(event.target.value)}
       />
-      <button type="submit" aria-label={`Add card to ${listName}`} disabled={draft.trim().length === 0}>
+      <button
+        type="submit"
+        className="ghost"
+        aria-label={`Add card to ${listName}`}
+        disabled={draft.trim().length === 0}
+      >
         Add
       </button>
     </form>

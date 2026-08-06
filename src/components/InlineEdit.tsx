@@ -3,10 +3,11 @@ import { useRef, useState, type KeyboardEvent } from 'react';
 interface Props {
   value: string;
   label: string;
+  className?: string;
   onCommit: (next: string) => void;
 }
 
-export function InlineEdit({ value, label, onCommit }: Props) {
+export function InlineEdit({ value, label, className, onCommit }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const cancelled = useRef(false);
@@ -43,7 +44,7 @@ export function InlineEdit({ value, label, onCommit }: Props) {
 
   if (!editing) {
     return (
-      <button type="button" onClick={begin}>
+      <button type="button" className={className} onClick={begin}>
         {value}
       </button>
     );
@@ -52,6 +53,7 @@ export function InlineEdit({ value, label, onCommit }: Props) {
   return (
     <input
       aria-label={label}
+      className={`inline-edit ${className ?? ''}`}
       autoFocus
       value={draft}
       onChange={(event) => setDraft(event.target.value)}

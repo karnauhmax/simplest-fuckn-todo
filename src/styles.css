@@ -1,27 +1,577 @@
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --paper: #f4f2ec;
+  --surface: #fbfaf7;
+  --ink: #14130f;
+  --muted: #6f6a5e;
+  --rule: #ddd8ca;
+  --rule-strong: #c4bdaa;
+  --accent: #c33a15;
+  --accent-soft: #f0d9d1;
+
+  --column: 19rem;
+  --radius: 2px;
+  --step: 0.35s cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --display: 'Instrument Serif', Georgia, serif;
+
+  color-scheme: light;
+  font-family: var(--mono);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14130f;
+    --surface: #1d1c17;
+    --ink: #f1efe7;
+    --muted: #928c7d;
+    --rule: #33312a;
+    --rule-strong: #4b473d;
+    --accent: #f2582b;
+    --accent-soft: #3a241c;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  padding: 1.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  /* A single warm wash off the top-left corner, so the field is not a flat fill. */
+  background-image: radial-gradient(
+    120% 80% at 0% 0%,
+    color-mix(in srgb, var(--accent) 7%, transparent),
+    transparent 60%
+  );
+  background-attachment: fixed;
 }
 
-/* Touch drag: a finger may scroll the board until the sensor delay elapses,
-   after which iOS must not hijack the gesture with selection or a callout. */
-section[aria-label^='List'],
-section[aria-label^='List'] li {
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+/* ---------- shared atoms ---------- */
+
+.label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ghost {
+  border: 1px solid transparent;
+  background: none;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--step), border-color var(--step), background var(--step);
+}
+
+.ghost:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--rule-strong);
+}
+
+.ghost:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ghost--danger:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.field {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--rule-strong);
+  background: none;
+  padding: 0.35rem 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  transition: border-color var(--step);
+}
+
+.field:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+/* ---------- unlock ---------- */
+
+.unlock {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.unlock__inner {
+  width: min(24rem, 100%);
+  animation: rise 0.6s var(--step) both;
+}
+
+.unlock__mark {
+  font-family: var(--display);
+  font-size: clamp(2.75rem, 11vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0 0 2.5rem;
+}
+
+.unlock__mark em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.unlock__form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.unlock__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.unlock__row .field {
+  letter-spacing: 0.3em;
+}
+
+.solid {
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--step), transform var(--step);
+}
+
+.solid:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.solid:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.alert {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+/* ---------- header ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.9rem clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--rule-strong);
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.topbar__mark {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.topbar__mark em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.topbar__spacer {
+  flex: 1;
+}
+
+.select {
+  appearance: none;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  padding: 0.35rem 2rem 0.35rem 0.6rem;
+  border-radius: var(--radius);
+  font-size: 12px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 0.85rem center, right 0.6rem center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  max-width: 14rem;
+}
+
+.namer {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+  padding-top: 0.35rem;
+}
+
+.namer label {
+  padding-bottom: 0.35rem;
+}
+
+/* ---------- board ---------- */
+
+.board {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 3.6rem);
+  padding: clamp(1rem, 3vw, 2rem) 0 1.5rem;
+}
+
+.board__title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 5vw, 2.75rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0 clamp(1rem, 4vw, 2.5rem) 1.5rem;
+}
+
+.board__rail {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  padding: 0 clamp(1rem, 4vw, 2.5rem) 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.board__empty {
+  margin: 0 clamp(1rem, 4vw, 2.5rem);
+  color: var(--muted);
+}
+
+/* ---------- list column ---------- */
+
+.list {
+  flex: 0 0 var(--column);
+  scroll-snap-align: start;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 13rem;
+  max-height: calc(100dvh - 11rem);
+  animation: rise 0.5s var(--step) both;
+  animation-delay: calc(var(--index, 0) * 60ms);
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
 
-section[data-dragging] {
+.list[data-dragging] {
+  opacity: 0.4;
+}
+
+.list[data-over] {
+  border-color: var(--accent);
+}
+
+.list__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  cursor: grab;
+}
+
+.list__head:active {
+  cursor: grabbing;
+}
+
+.list__count {
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.list__cards {
+  flex: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  overflow-y: auto;
+  min-height: 3rem;
+}
+
+/* Keep destructive controls out of the reading surface until wanted. */
+@media (hover: hover) {
+  .list__head .ghost {
+    opacity: 0;
+    transition: opacity var(--step);
+  }
+
+  .list:hover .list__head .ghost,
+  .list__head .ghost:focus-visible {
+    opacity: 1;
+  }
+}
+
+.list__foot {
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* ---------- card ---------- */
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  transition: border-color var(--step), transform var(--step);
+}
+
+.card:hover {
+  border-color: var(--rule-strong);
+}
+
+.card[data-dragging] {
+  opacity: 0.25;
+}
+
+.card__title {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: inherit;
+  cursor: text;
+  word-break: break-word;
+}
+
+.card__delete {
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--step), color var(--step);
+}
+
+.card:hover .card__delete,
+.card__delete:focus-visible {
+  opacity: 1;
+}
+
+/* The overlay is the only element allowed to leave the paper plane. */
+.card--overlay {
+  list-style: none;
+  transform: rotate(-1.5deg) scale(1.02);
+  border-color: var(--ink);
+  box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.55);
+  cursor: grabbing;
+}
+
+.overlay-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: calc(var(--column) - 1rem);
+}
+
+.overlay-card {
+  padding: 0.7rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.6);
+  transform: rotate(-1deg);
+  font-family: var(--display);
+  font-size: 1.1rem;
+}
+
+/* ---------- inline edit + quick add ---------- */
+
+.inline-edit {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  background: none;
+  width: 100%;
+}
+
+.inline-edit:focus {
+  outline: none;
+}
+
+.list__title {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  color: inherit;
+  cursor: text;
+  word-break: break-word;
+}
+
+.quick-add {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quick-add .field {
+  font-size: 12px;
+  border-bottom-color: var(--rule);
+}
+
+.quick-add .field::placeholder {
+  color: var(--muted);
+}
+
+.new-list {
+  flex: 0 0 13rem;
+  align-self: flex-start;
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  padding: 0.85rem;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius);
+  background: none;
+  transition: border-color var(--step);
+}
+
+.new-list:hover,
+.new-list:focus-within {
+  border-color: var(--rule-strong);
+}
+
+.new-list .solid {
+  justify-self: start;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar__mark {
+    display: none;
+  }
+
+  .topbar {
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .board {
+    min-height: calc(100dvh - 3rem);
+  }
+
+  .list {
+    flex-basis: min(85vw, var(--column));
+    max-height: none;
+  }
+
+  .board__rail {
+    scroll-snap-type: x mandatory;
+  }
+
+  .card__delete {
+    opacity: 1;
+  }
+}
+
+/* Once a drag is under way, nothing on the board may pan or select. */
+.board[data-dragging] {
   -webkit-user-select: none;
   user-select: none;
 }
 
-section[data-dragging] li,
-section[data-dragging] header {
+.board[data-dragging] .card,
+.board[data-dragging] .list__head {
   touch-action: none;
 }

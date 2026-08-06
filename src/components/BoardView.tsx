@@ -217,8 +217,12 @@ export function BoardView({
   }
 
   return (
-    <section aria-label={`Board ${board.name}`} data-dragging={dragging || undefined}>
-      <h2>{board.name}</h2>
+    <section
+      className="board"
+      aria-label={`Board ${board.name}`}
+      data-dragging={dragging || undefined}
+    >
+      <h2 className="board__title">{board.name}</h2>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -227,15 +231,16 @@ export function BoardView({
         onDragEnd={dragEnd}
         onDragCancel={endGesture}
       >
-        <div>
+        <div className="board__rail">
           <SortableContext
             items={view.lists.map((list) => `${LIST_PREFIX}${list.id}`)}
             strategy={horizontalListSortingStrategy}
           >
-            {view.lists.map((list) => (
+            {view.lists.map((list, index) => (
               <ListColumn
                 key={list.id}
                 list={list}
+                index={index}
                 onRename={(name) => onRenameList(list.id, name)}
                 onDelete={() => onDeleteList(list.id)}
                 onAddCard={(title) => onAddCard(list.id, title)}
@@ -244,24 +249,31 @@ export function BoardView({
               />
             ))}
           </SortableContext>
-          <form onSubmit={addList}>
-            <label htmlFor="new-list">New list name</label>
-            <input id="new-list" value={draft} onChange={(event) => setDraft(event.target.value)} />
-            <button type="submit" disabled={draft.trim().length === 0}>
+          <form className="new-list" onSubmit={addList}>
+            <label className="label" htmlFor="new-list">
+              New list name
+            </label>
+            <input
+              id="new-list"
+              className="field"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            <button className="solid" type="submit" disabled={draft.trim().length === 0}>
               Add list
             </button>
           </form>
         </div>
         <DragOverlay>
           {activeCard && (
-            <ul>
-              <CardItem card={activeCard} dragging />
+            <ul className="overlay-list">
+              <CardItem card={activeCard} overlay />
             </ul>
           )}
           {activeList && (
-            <section aria-label={`Dragging list ${activeList.name}`}>
-              <h3>{activeList.name}</h3>
-            </section>
+            <div className="overlay-card" aria-label={`Dragging list ${activeList.name}`}>
+              {activeList.name}
+            </div>
           )}
         </DragOverlay>
       </DndContext>

@@ -160,7 +160,11 @@ export function App() {
         onDelete={remove}
       />
       <main>
-        {error && <p role="alert">{error}</p>}
+        {error && (
+          <p className="alert" role="alert">
+            {error}
+          </p>
+        )}
         {board ? (
           <BoardView
             board={board}
@@ -178,7 +182,9 @@ export function App() {
             onMoveList={(listId, toIndex) => commit({ type: 'move-list', listId, toIndex })}
           />
         ) : (
-          summaries.length === 0 && <p>No boards yet. Create one to get started.</p>
+          summaries.length === 0 && (
+            <p className="board__empty">No boards yet. Create one to get started.</p>
+          )
         )}
       </main>
     </>

@@ -9,6 +9,7 @@ interface Props {
   ref?: Ref<HTMLLIElement>;
   style?: CSSProperties;
   dragging?: boolean;
+  overlay?: boolean;
   dragHandleProps?: HTMLAttributes<HTMLElement>;
 }
 
@@ -19,18 +20,30 @@ export function CardItem({
   ref,
   style,
   dragging = false,
+  overlay = false,
   dragHandleProps,
 }: Props) {
   return (
-    <li ref={ref} style={style} data-dragging={dragging || undefined} {...dragHandleProps}>
+    <li
+      ref={ref}
+      style={style}
+      className={`card${overlay ? ' card--overlay' : ''}`}
+      data-dragging={dragging || undefined}
+      {...dragHandleProps}
+    >
       {onEdit ? (
-        <InlineEdit value={card.title} label="Card title" onCommit={onEdit} />
+        <InlineEdit value={card.title} label="Card title" className="card__title" onCommit={onEdit} />
       ) : (
-        <span>{card.title}</span>
+        <span className="card__title">{card.title}</span>
       )}
       {onDelete && (
-        <button type="button" onClick={onDelete} aria-label={`Delete card ${card.title}`}>
-          Delete
+        <button
+          type="button"
+          className="ghost ghost--danger card__delete"
+          onClick={onDelete}
+          aria-label={`Delete card ${card.title}`}
+        >
+          Del
         </button>
       )}
     </li>

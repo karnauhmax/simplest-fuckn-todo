@@ -26,22 +26,37 @@ export function UnlockScreen({ onUnlocked }: Props) {
   }
 
   return (
-    <main>
-      <h1>Simplest Fuckn Todo</h1>
-      <form onSubmit={submit}>
-        <label htmlFor="secret">Secret</label>
-        <input
-          id="secret"
-          type="password"
-          value={secret}
-          autoComplete="current-password"
-          onChange={(event) => setSecret(event.target.value)}
-        />
-        <button type="submit" disabled={busy || secret.length === 0}>
-          Unlock
-        </button>
-      </form>
-      {error && <p role="alert">{error}</p>}
+    <main className="unlock">
+      <div className="unlock__inner">
+        <h1 className="unlock__mark">
+          simplest
+          <br />
+          fuckn <em>todo</em>
+        </h1>
+        <form className="unlock__form" onSubmit={submit}>
+          <label className="label" htmlFor="secret">
+            Secret
+          </label>
+          <div className="unlock__row">
+            <input
+              id="secret"
+              className="field"
+              type="password"
+              value={secret}
+              autoComplete="current-password"
+              onChange={(event) => setSecret(event.target.value)}
+            />
+            <button className="solid" type="submit" disabled={busy || secret.length === 0}>
+              {busy ? 'Checking' : 'Unlock'}
+            </button>
+          </div>
+          {error && (
+            <p className="alert" role="alert">
+              {error}
+            </p>
+          )}
+        </form>
+      </div>
     </main>
   );
 }
