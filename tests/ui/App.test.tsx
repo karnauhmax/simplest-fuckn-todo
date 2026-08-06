@@ -9,6 +9,16 @@ function respond(status: number, body: unknown) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status }));
 }
 
+function stubRoutes(routes: Record<string, unknown>) {
+  const fetchMock = vi.fn(async (input: string) => {
+    const body = routes[input];
+    if (body === undefined) return new Response('{}', { status: 404 });
+    return new Response(JSON.stringify(body), { status: 200 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -26,11 +36,15 @@ test('without a stored secret the app is locked', () => {
 
 test('a stored secret unlocks the app and its boards load', async () => {
   localStorage.setItem(SECRET_KEY, 'open-sesame');
-  vi.stubGlobal('fetch', respond(200, [{ id: 'b1', name: 'Personal' }]));
+  stubRoutes({
+    '/api/boards': [{ id: 'b1', name: 'Personal' }],
+    '/api/boards/b1': { id: 'b1', name: 'Personal', lists: [] },
+  });
   render(<App />);
 
-  expect(await screen.findByText('Personal')).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: 'Personal', level: 2 })).toBeInTheDocument();
   expect(screen.queryByLabelText('Secret')).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Board')).toHaveValue('b1');
 });
 
 test('a 401 flips the app back to locked and discards the stored secret', async () => {
@@ -40,4 +54,13 @@ test('a 401 flips the app back to locked and discards the stored secret', async 
 
   expect(await screen.findByLabelText('Secret')).toBeInTheDocument();
   expect(localStorage.getItem(SECRET_KEY)).toBeNull();
+});
+
+test('with no boards at all the app invites creating one', async () => {
+  localStorage.setItem(SECRET_KEY, 'open-sesame');
+  stubRoutes({ '/api/boards': [] });
+  render(<App />);
+
+  expect(await screen.findByText('No boards yet. Create one to get started.')).toBeInTheDocument();
+  expect(screen.getByLabelText('Board')).toBeDisabled();
 });

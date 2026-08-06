@@ -40,6 +40,11 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — unlocking is verified by a probe `GET /api/boards` with the typed secret before it is written to localStorage.** The alternative — store optimistically and let the ordinary 401-lock path bounce it back — would flash the board and leave a bad secret on disk. Consequence: the unlock button performs a network round-trip, so it disables itself while in flight.
 - **2026-08-06 — component tests get jsdom through a per-file `// @vitest-environment jsdom` docblock, not a vitest projects/workspace split.** The suite stays one `npm run test` with one config; API tests keep the faster node environment. `tests/setup.ts` loads `@testing-library/jest-dom/vitest` globally (harmless in node-environment files).
 - **2026-08-06 — no lock/sign-out affordance was built.** The spec asks only that the correct secret unlock the device persistently; a Lock button was written during part 2 and removed as unrequested scope. If re-locking is ever wanted, it is a button calling the existing `clearSecret()` path.
+- **2026-08-06 — board ids are generated server-side (`randomUUID()` in the POST handler); card and list ids stay client-side per the plan.** A board id must exist before the client has anything to persist into, and letting the client pick the primary key invites collisions from a stale tab. Consequence: `createBoard()` uses the returned board rather than an optimistic local one.
+- **2026-08-06 — `DELETE /api/boards/[id]` answers `200 {id}`, not `204`.** `apiFetch` parses JSON on every response; a 204 with an empty body would need a special case in the one function all calls go through. The cost is a technically redundant body.
+- **2026-08-06 — board names are validated as trimmed, non-empty, ≤200 characters, at the API boundary (`api/_lib/validate.ts`).** PUT additionally deep-checks lists and cards and rejects a malformed body with 400, leaving the stored document untouched — a truncated or half-migrated write is the failure this guards against.
+- **2026-08-06 — create/rename use an inline form in the header; delete uses `window.confirm`.** `window.prompt` for naming was rejected as unstyleable and awkward on iOS; a bespoke confirm dialog for delete was rejected as more component than the risk warrants. Consequence: the delete confirmation is the one piece of native browser chrome in the app, and part 7b may want to replace it.
+- **2026-08-06 — the active board is not remembered across reloads; the app selects the first board by name.** Persisting the last-active id in localStorage is one line and was deliberately left out as unrequested scope. If switching-back-and-forth becomes annoying in real use, that is the fix.
 - **2026-08-06 — iPhone smokes are pause-and-hand-off.** At the end of parts 7 and 11 the session stops, hands the user a URL + checklist, and the part stays `doing` until the user reports pass/fail. "Mark blocked and continue" and "trust webkit until deploy" were rejected — the plan names real-iPhone drag feel the top delivery risk, so it gates progression.
 
 ## Parts
@@ -66,14 +71,14 @@ Vite+TS+React scaffold, `/shared/types.ts`, `vercel.json`, Vitest wiring; cached
 - Last run: 2026-08-06 — part 1's check re-run first and reproduced (`Test Files 1 passed`, `tsc exit=0`, `curl` on `/api/boards` → `[{"id":"seed-board","name":"Seeded From Mongo"}]`, leak grep exit=1, Chromium body text `Simplest Fuckn TodoSeeded From Mongo`). Then: `npm run test` → `Test Files 4 passed (4) / Tests 12 passed (12)`; `npx tsc -b --noEmit` → `tsc exit=0`; `curl` with no bearer → `401`, `Bearer wrong` → `{"error":"Unauthorized"} status=401`, `Bearer dev-secret` → `[{"id":"seed-board",...}] status=200`, same through the Vite proxy on 5173. Headless Chromium: `1. initial: Simplest Fuckn TodoSecretUnlock`; `2. wrong secret: Wrong secret. | stored: null`; `3. unlocked: Simplest Fuckn TodoSeeded From Mongo`; `4. after reload: ... | unlock form present: false`; `5. stale secret → 401 relocks: Simplest Fuckn TodoSecretUnlock | stored: null`.
 - Depends on: 1
 
-### 3. Board CRUD and switching — `todo`
+### 3. Board CRUD and switching — `done`
 
 `POST` create; `GET/PUT/DELETE` on `[id]` (rename via PUT, no PATCH); header-dropdown BoardSwitcher; create/rename/delete from the UI. API tests: happy paths, 404, 400, PUT round-trip of nested lists/cards.
 
 **Done when** a board can be created, renamed, deleted, and switched to from the header dropdown, and a full reload shows the identical set of boards.
 
 - Check: `npm run test` passes including the boards API tests (404 unknown id, 400 malformed body, PUT round-trip intact); manual: in the browser create → rename → switch → delete a board, reload, the remaining set matches exactly.
-- Last run: not yet
+- Last run: 2026-08-06 — part 2's check re-run first and reproduced (`Test Files 4 passed / Tests 12 passed`, `tsc exit=0`, `curl` no bearer → `401`, correct bearer → `[] status=200`). Then: `npm run test` → `Test Files 5 passed (5) / Tests 39 passed (39)`; `npx tsc -b --noEmit` → `tsc exit=0`. Headless Chromium against the dev adapter: `1. start: [ 'No boards yet' ]`; `2. after create x2: [ 'Personal', 'Work' ] | active: Work | heading: Work`; `3. after rename: [ 'Personal', 'Work renamed' ] | heading: Work renamed`; `4. after switch: | active: Personal | heading: Personal`; `5. after reload: [ 'Personal', 'Work renamed' ] | active: Personal | heading: Personal`; `6. after delete: [ 'Personal' ] | heading: Personal`; `7. after reload: [ 'Personal' ] | heading: Personal`.
 - Depends on: 2
 
 ### 4. Lists on a board, persisted through the write serializer — `todo`

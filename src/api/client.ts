@@ -1,4 +1,4 @@
-import type { BoardSummary } from '../../shared/types.js';
+import type { Board, BoardSummary } from '../../shared/types.js';
 
 const SECRET_KEY = 'simplest-fuckn-todo:secret';
 
@@ -45,4 +45,27 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
 export function fetchBoards(options: RequestOptions = {}): Promise<BoardSummary[]> {
   return apiFetch<BoardSummary[]>('/api/boards', options);
+}
+
+function boardPath(id: string): string {
+  return `/api/boards/${encodeURIComponent(id)}`;
+}
+
+export function createBoard(name: string): Promise<Board> {
+  return apiFetch<Board>('/api/boards', { method: 'POST', body: { name } });
+}
+
+export function fetchBoard(id: string): Promise<Board> {
+  return apiFetch<Board>(boardPath(id));
+}
+
+export function saveBoard(board: Board): Promise<Board> {
+  return apiFetch<Board>(boardPath(board.id), {
+    method: 'PUT',
+    body: { name: board.name, lists: board.lists },
+  });
+}
+
+export function deleteBoard(id: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(boardPath(id), { method: 'DELETE' });
 }
