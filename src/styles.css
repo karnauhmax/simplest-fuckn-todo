@@ -7,3 +7,21 @@ body {
   margin: 0;
   padding: 1.5rem;
 }
+
+/* Touch drag: a finger may scroll the board until the sensor delay elapses,
+   after which iOS must not hijack the gesture with selection or a callout. */
+section[aria-label^='List'],
+section[aria-label^='List'] li {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+section[data-dragging] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+section[data-dragging] li,
+section[data-dragging] header {
+  touch-action: none;
+}

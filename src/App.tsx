@@ -175,6 +175,7 @@ export function App() {
             }
             onDeleteCard={(listId, cardId) => commit({ type: 'delete-card', listId, cardId })}
             onMoveCard={(move) => commit({ type: 'move-card', ...move })}
+            onMoveList={(listId, toIndex) => commit({ type: 'move-list', listId, toIndex })}
           />
         ) : (
           summaries.length === 0 && <p>No boards yet. Create one to get started.</p>

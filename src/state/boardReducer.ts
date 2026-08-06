@@ -9,6 +9,7 @@ export type BoardAction =
   | { type: 'add-card'; listId: string; cardId: string; title: string }
   | { type: 'edit-card'; listId: string; cardId: string; title: string }
   | { type: 'delete-card'; listId: string; cardId: string }
+  | { type: 'move-list'; listId: string; toIndex: number }
   | {
       type: 'move-card';
       fromListId: string;
@@ -82,6 +83,17 @@ export function boardReducer(board: Board | null, action: BoardAction): Board | 
         const cards = list.cards.filter((card) => card.id !== action.cardId);
         return cards.length === list.cards.length ? list : { ...list, cards };
       });
+
+    case 'move-list': {
+      const at = board.lists.findIndex((list) => list.id === action.listId);
+      if (at === -1) return board;
+
+      const lists = board.lists.filter((list) => list.id !== action.listId);
+      const target = clamp(action.toIndex, lists.length);
+      if (target === at) return board;
+      lists.splice(target, 0, board.lists[at]!);
+      return { ...board, lists };
+    }
 
     case 'move-card': {
       const from = board.lists.find((list) => list.id === action.fromListId);
