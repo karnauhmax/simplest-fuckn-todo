@@ -31,20 +31,24 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 
 - **2026-08-06 — git repo is https://github.com/karnauhmax/simplest-fuckn-todo.git; `.plans/` is versioned.** User supplied the remote and asked for git init in this directory (part 1). Versioning `.plans/` keeps the journal and decision history across machines; gitignoring it was the alternative and was not chosen.
 - **2026-08-06 — app name "simplest-fuckn-todo" (manifest name "Simplest Fuckn Todo"), placeholder icons.** Name derived from the repo the user chose. Generated flat kanban-glyph icons for part 8; user-supplied artwork rejected as a blocker — can be swapped in later anytime.
+- **2026-08-06 — the part-9 dev adapter was built (minimally) in part 1, not part 9.** Part 1's check requires curling the real handler, which needs something to serve it; `vercel dev` was the alternative and was rejected (auth + known CI flake, already ruled out in the plan's ADR). `dev/api-server.ts` + `dev/router.ts` mount the real handler files over an ephemeral mongodb-memory-server, writing the URI to `.dev-mongo-uri`; `/api/boards/[id]` is imported through a runtime-variable specifier so the router works before that file exists. Part 9 extends this instead of starting it.
+- **2026-08-06 — `playwright` (the library, not `@playwright/test`) installed in part 1 to verify "visible in the browser".** Browsers were already cached in the image. Asserting DOM text through a real Chromium was preferred over an RTL/jsdom stand-in, which would not have exercised the Vite proxy → handler → Mongo path. Part 9 adds `@playwright/test` on top.
+- **2026-08-06 — board id is stored as Mongo `_id` (string), not a separate `id` field.** `toBoard()` in `api/_lib/db.ts` maps `_id → id` at the boundary. Keeping both was the alternative; one source of identity avoids the two drifting.
+- **2026-08-06 — part 12 (Obsidian migration) was missing from this file and has been added.** It exists in the plan (phase 9) and slices (slice 12); the state plan stopped at 11. Added verbatim from the slice so "every part done" means the whole scope.
 - **2026-08-06 — iPhone smokes are pause-and-hand-off.** At the end of parts 7 and 11 the session stops, hands the user a URL + checklist, and the part stays `doing` until the user reports pass/fail. "Mark blocked and continue" and "trust webkit until deploy" were rejected — the plan names real-iPhone drag feel the top delivery risk, so it gates progression.
 
 ## Parts
 
 Status is `todo`, `doing`, `done`, or `blocked`.
 
-### 1. Walking skeleton: board names from DB to browser — `todo`
+### 1. Walking skeleton: board names from DB to browser — `done`
 
 Vite+TS+React scaffold, `/shared/types.ts`, `vercel.json`, Vitest wiring; cached MongoClient; `GET /api/boards` returning `{id, name}[]` summaries; minimal shell rendering the fetched names. No auth, no mutations. Also: `git init` with remote `https://github.com/karnauhmax/simplest-fuckn-todo.git`, `.gitignore` (node_modules, dist, .env*, .pi-subagents), initial commit including `.plans/` (per Decisions 2026-08-06).
 
 **Done when** a board document inserted directly into the database appears by name in the browser, served through the real API function, and the summaries payload contains no lists or cards.
 
-- Check: `npm run test` passes (suite may be near-empty but wired); with the dev server + a local/ephemeral Mongo running, `curl` on `/api/boards` prints a JSON array of `{id, name}` objects and `grep`-ing the response for `"lists"` or `"cards"` returns nothing; the inserted board's name is visible in the browser page.
-- Last run: not yet
+- Check: `npm run test` passes (suite may be near-empty but wired); `npx tsc -b --noEmit` is clean; with `npm run dev:api` (ephemeral Mongo) + `npm run dev` running, `curl` on `/api/boards` prints a JSON array of `{id, name}` objects and `grep -E '"(lists|cards)"'` on the response exits 1; a board inserted directly into Mongo is visible in a real browser at `http://localhost:5173/`.
+- Last run: 2026-08-06 — `npm run test` → `Test Files 1 passed (1) / Tests 1 passed (1)`; `npx tsc -b --noEmit` → `tsc exit=0`; seed script → `inserted`; `curl -s http://localhost:3001/api/boards` → `[{"id":"seed-board","name":"Seeded From Mongo"}]`; leak grep → `grep exit=1 (1 = clean)`; `curl -s http://localhost:5173/api/boards` (through the Vite proxy) → same JSON; headless Chromium on `http://localhost:5173/` → `BODY TEXT: Simplest Fuckn TodoSeeded From Mongo`.
 - Depends on: none
 
 ### 2. Shared-secret auth end-to-end — `todo`
@@ -146,6 +150,16 @@ Atlas M0 (allowlist 0.0.0.0/0 — auth is app-layer) + Vercel Hobby with `MONGOD
 - Check: the production URL loads over HTTPS and completes an unlock + card mutation that survives reload; Vercel dashboard shows Hobby plan and Atlas shows M0 (no paid resources); the smoke checklist contains dated pass entries for the preview-deployment smoke and the iPhone install + touch drag.
 - Last run: not yet
 - Depends on: 10
+
+### 12. Migrate the existing Obsidian board verbatim — `todo`
+
+Throwaway script `/scripts/migrate-obsidian.ts` (not app code): parse `existing-tasks.md` — `##` headings become lists, `- [ ]` lines become card titles, the `%% kanban:settings %%` block is ignored — and insert one board document directly into the Atlas `boards` collection (direct Mongo insert per user decision), using `/shared/types.ts` shapes and `crypto.randomUUID()` ids.
+
+**Done when** the deployed app shows the migrated board with all six lists (On Hold, TODAY, THIS WEEK, LATER, Done, Archive) and all 88 cards in exact source text and order, and dragging or editing a migrated card persists normally.
+
+- Check: against the deployed app, the migrated board's list names and card count match the source file (`grep -c '^- \[ \]' existing-tasks.md` equals the card count shown); editing and dragging a migrated card survives reload.
+- Last run: not yet
+- Depends on: 11
 
 ## Open questions
 

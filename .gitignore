@@ -9,3 +9,5 @@ dist/
 .vercel
 playwright-report/
 test-results/
+.dev-mongo-uri
+*.tsbuildinfo
