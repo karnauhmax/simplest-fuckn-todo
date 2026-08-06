@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Board, BoardSummary } from '../shared/types.js';
 import {
   UnauthorizedError,
@@ -8,10 +8,12 @@ import {
   fetchBoard,
   fetchBoards,
   loadSecret,
-  saveBoard,
 } from './api/client.js';
+import { createWriteQueue } from './api/writeQueue.js';
+import { boardReducer, type BoardAction } from './state/boardReducer.js';
 import { UnlockScreen } from './components/UnlockScreen.js';
 import { BoardSwitcher } from './components/BoardSwitcher.js';
+import { BoardView } from './components/BoardView.js';
 
 export function App() {
   const [unlocked, setUnlocked] = useState(() => loadSecret() !== null);
@@ -20,13 +22,27 @@ export function App() {
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Mirrors `board` so a burst of commits within one tick each build on the
+  // previous snapshot rather than on the last rendered one.
+  const boardRef = useRef<Board | null>(null);
+  const onWriteError = useRef<(error: Error, snapshot: Board) => void>(() => {});
+  const queue = useMemo(
+    () => createWriteQueue({ onError: (error, snapshot) => onWriteError.current(error, snapshot) }),
+    [],
+  );
+
+  const showBoard = useCallback((next: Board | null) => {
+    boardRef.current = next;
+    setBoard(next);
+  }, []);
+
   const lock = useCallback(() => {
     clearSecret();
     setSummaries([]);
     setActiveId(null);
-    setBoard(null);
+    showBoard(null);
     setUnlocked(false);
-  }, []);
+  }, [showBoard]);
 
   const guard = useCallback(
     async (work: () => Promise<void>) => {
@@ -48,29 +64,59 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    onWriteError.current = (err, snapshot) => {
+      if (err instanceof UnauthorizedError) {
+        lock();
+        return;
+      }
+      setError(`Could not save: ${err.message}`);
+      if (boardRef.current?.id !== snapshot.id) return;
+      // Deliberately not routed through `guard`: a successful refetch must not
+      // clear the message telling the user their edit was rolled back.
+      fetchBoard(snapshot.id)
+        .then((fresh) => {
+          if (boardRef.current?.id === fresh.id) showBoard(fresh);
+        })
+        .catch((refetchError: Error) => {
+          if (refetchError instanceof UnauthorizedError) lock();
+        });
+    };
+  });
+
+  useEffect(() => {
     if (!unlocked) return;
     void guard(async () => {
       const list = await reloadSummaries();
-      setActiveId((current) => (current && list.some((b) => b.id === current) ? current : (list[0]?.id ?? null)));
+      setActiveId((current) =>
+        current && list.some((b) => b.id === current) ? current : (list[0]?.id ?? null),
+      );
     });
   }, [unlocked, guard, reloadSummaries]);
 
   useEffect(() => {
     if (!unlocked || !activeId) {
-      setBoard(null);
+      showBoard(null);
       return;
     }
     let stale = false;
     void guard(async () => {
       const loaded = await fetchBoard(activeId);
-      if (!stale) setBoard(loaded);
+      if (!stale) showBoard(loaded);
     });
     return () => {
       stale = true;
     };
-  }, [unlocked, activeId, guard]);
+  }, [unlocked, activeId, guard, showBoard]);
 
   if (!unlocked) return <UnlockScreen onUnlocked={() => setUnlocked(true)} />;
+
+  function commit(action: BoardAction) {
+    const previous = boardRef.current;
+    const next = boardReducer(previous, action);
+    if (!next || next === previous) return;
+    showBoard(next);
+    queue.save(next);
+  }
 
   const create = (name: string) =>
     guard(async () => {
@@ -79,13 +125,12 @@ export function App() {
       setActiveId(created.id);
     });
 
-  const rename = (name: string) =>
-    guard(async () => {
-      if (!board) return;
-      const renamed = await saveBoard({ ...board, name });
-      setBoard(renamed);
-      await reloadSummaries();
-    });
+  const rename = (name: string) => {
+    const id = boardRef.current?.id;
+    if (!id) return;
+    commit({ type: 'rename-board', name });
+    setSummaries((prev) => prev.map((s) => (s.id === id ? { ...s, name } : s)));
+  };
 
   const remove = () =>
     guard(async () => {
@@ -108,10 +153,12 @@ export function App() {
       <main>
         {error && <p role="alert">{error}</p>}
         {board ? (
-          <section aria-label={board.name}>
-            <h2>{board.name}</h2>
-            {board.lists.length === 0 && <p>No lists yet.</p>}
-          </section>
+          <BoardView
+            board={board}
+            onAddList={(name) => commit({ type: 'add-list', listId: crypto.randomUUID(), name })}
+            onRenameList={(listId, name) => commit({ type: 'rename-list', listId, name })}
+            onDeleteList={(listId) => commit({ type: 'delete-list', listId })}
+          />
         ) : (
           summaries.length === 0 && <p>No boards yet. Create one to get started.</p>
         )}
