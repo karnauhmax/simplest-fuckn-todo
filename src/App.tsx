@@ -1,19 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { BoardSummary } from '../shared/types.js';
+import { UnauthorizedError, clearSecret, fetchBoards, loadSecret } from './api/client.js';
+import { UnlockScreen } from './components/UnlockScreen.js';
 
 export function App() {
+  const [unlocked, setUnlocked] = useState(() => loadSecret() !== null);
   const [summaries, setSummaries] = useState<BoardSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch('/api/boards')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<BoardSummary[]>;
-      })
-      .then(setSummaries)
-      .catch((err: Error) => setError(err.message));
+  const lock = useCallback(() => {
+    clearSecret();
+    setSummaries(null);
+    setUnlocked(false);
   }, []);
+
+  useEffect(() => {
+    if (!unlocked) return;
+    let stale = false;
+    fetchBoards()
+      .then((boards) => {
+        if (!stale) setSummaries(boards);
+      })
+      .catch((err: Error) => {
+        if (stale) return;
+        if (err instanceof UnauthorizedError) lock();
+        else setError(err.message);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [unlocked, lock]);
+
+  if (!unlocked) return <UnlockScreen onUnlocked={() => setUnlocked(true)} />;
 
   return (
     <main>

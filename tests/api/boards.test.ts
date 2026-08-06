@@ -7,9 +7,12 @@ import { callHandler } from '../helpers/callHandler.js';
 let mongo: MongoMemoryServer;
 let client: MongoClient;
 
+const SECRET = 'correct-horse-battery-staple';
+
 beforeAll(async () => {
   mongo = await MongoMemoryServer.create();
   process.env.MONGODB_URI = mongo.getUri();
+  process.env.APP_SECRET = SECRET;
   client = await new MongoClient(mongo.getUri()).connect();
 });
 
@@ -27,7 +30,10 @@ test('GET /api/boards returns id+name summaries without lists or cards', async (
   await client.db('todo').collection<BoardDoc>('boards').insertOne(doc);
 
   const handler = (await import('../../api/boards/index.js')).default;
-  const { status, body } = await callHandler(handler, { method: 'GET' });
+  const { status, body } = await callHandler(handler, {
+    method: 'GET',
+    headers: { authorization: `Bearer ${SECRET}` },
+  });
 
   expect(status).toBe(200);
   expect(body).toEqual([{ id: 'board-1', name: 'Personal' }]);

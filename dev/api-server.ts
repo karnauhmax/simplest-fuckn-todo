@@ -5,6 +5,9 @@ import { createHandlerRouter } from './router.js';
 const PORT = Number(process.env.API_PORT ?? 3001);
 
 async function main() {
+  process.env.APP_SECRET ??= 'dev-secret';
+  console.log(`APP_SECRET: ${process.env.APP_SECRET}`);
+
   if (!process.env.MONGODB_URI) {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     const mongo = await MongoMemoryServer.create();

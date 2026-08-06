@@ -36,6 +36,10 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — board id is stored as Mongo `_id` (string), not a separate `id` field.** `toBoard()` in `api/_lib/db.ts` maps `_id → id` at the boundary. Keeping both was the alternative; one source of identity avoids the two drifting.
 - **2026-08-06 — part 12 (Obsidian migration) was missing from this file and has been added.** It exists in the plan (phase 9) and slices (slice 12); the state plan stopped at 11. Added verbatim from the slice so "every part done" means the whole scope.
 - **2026-08-06 — visual design is its own part (7b), between 7 and 8, in minimal monochrome.** The plan never named styling as a deliverable; parts 1–7 carry only the layout drag needs. User chose a dedicated pass over folding styling into parts 4–7 (keeps those parts lean) and over polishing after deploy. Consequence, accepted: the binding real-iPhone smoke at the end of part 7 happens on a plain board, so drag *feel* is re-confirmed at part 11 on the styled one. Direction: near-black on near-white, one accent, typography and whitespace over chrome — not a Trello clone.
+- **2026-08-06 — the dev adapter defaults `APP_SECRET` to `dev-secret` when the env var is unset (part 2).** The serverless handlers refuse to serve without it, so local dev would otherwise 500 on every request. A `.env` file or a required env var were the alternatives; a default keeps `npm run dev:api` a single command with no setup, and production sets the variable explicitly in Vercel.
+- **2026-08-06 — unlocking is verified by a probe `GET /api/boards` with the typed secret before it is written to localStorage.** The alternative — store optimistically and let the ordinary 401-lock path bounce it back — would flash the board and leave a bad secret on disk. Consequence: the unlock button performs a network round-trip, so it disables itself while in flight.
+- **2026-08-06 — component tests get jsdom through a per-file `// @vitest-environment jsdom` docblock, not a vitest projects/workspace split.** The suite stays one `npm run test` with one config; API tests keep the faster node environment. `tests/setup.ts` loads `@testing-library/jest-dom/vitest` globally (harmless in node-environment files).
+- **2026-08-06 — no lock/sign-out affordance was built.** The spec asks only that the correct secret unlock the device persistently; a Lock button was written during part 2 and removed as unrequested scope. If re-locking is ever wanted, it is a button calling the existing `clearSecret()` path.
 - **2026-08-06 — iPhone smokes are pause-and-hand-off.** At the end of parts 7 and 11 the session stops, hands the user a URL + checklist, and the part stays `doing` until the user reports pass/fail. "Mark blocked and continue" and "trust webkit until deploy" were rejected — the plan names real-iPhone drag feel the top delivery risk, so it gates progression.
 
 ## Parts
@@ -52,14 +56,14 @@ Vite+TS+React scaffold, `/shared/types.ts`, `vercel.json`, Vitest wiring; cached
 - Last run: 2026-08-06 — `npm run test` → `Test Files 1 passed (1) / Tests 1 passed (1)`; `npx tsc -b --noEmit` → `tsc exit=0`; seed script → `inserted`; `curl -s http://localhost:3001/api/boards` → `[{"id":"seed-board","name":"Seeded From Mongo"}]`; leak grep → `grep exit=1 (1 = clean)`; `curl -s http://localhost:5173/api/boards` (through the Vite proxy) → same JSON; headless Chromium on `http://localhost:5173/` → `BODY TEXT: Simplest Fuckn TodoSeeded From Mongo`.
 - Depends on: none
 
-### 2. Shared-secret auth end-to-end — `todo`
+### 2. Shared-secret auth end-to-end — `done`
 
 `requireAuth` (SHA-256 both sides → `timingSafeEqual`) on all endpoints; client sends `Authorization: Bearer` from localStorage; UnlockScreen; 401 flips to locked. API tests for correct/wrong/wrong-length secrets; component tests for UnlockScreen and 401-lock.
 
 **Done when** with a wrong or missing secret the app stays locked and the API returns 401; the correct secret entered once unlocks the app and still unlocks it after a full reload.
 
 - Check: `npm run test` passes including the auth API tests (401 on missing/wrong bearer, wrong-length secret rejected without a 500) and UnlockScreen component tests; manual: `curl` without bearer prints 401, with `APP_SECRET` prints 200; in the browser, unlock then reload stays unlocked.
-- Last run: not yet
+- Last run: 2026-08-06 — part 1's check re-run first and reproduced (`Test Files 1 passed`, `tsc exit=0`, `curl` on `/api/boards` → `[{"id":"seed-board","name":"Seeded From Mongo"}]`, leak grep exit=1, Chromium body text `Simplest Fuckn TodoSeeded From Mongo`). Then: `npm run test` → `Test Files 4 passed (4) / Tests 12 passed (12)`; `npx tsc -b --noEmit` → `tsc exit=0`; `curl` with no bearer → `401`, `Bearer wrong` → `{"error":"Unauthorized"} status=401`, `Bearer dev-secret` → `[{"id":"seed-board",...}] status=200`, same through the Vite proxy on 5173. Headless Chromium: `1. initial: Simplest Fuckn TodoSecretUnlock`; `2. wrong secret: Wrong secret. | stored: null`; `3. unlocked: Simplest Fuckn TodoSeeded From Mongo`; `4. after reload: ... | unlock form present: false`; `5. stale secret → 401 relocks: Simplest Fuckn TodoSecretUnlock | stored: null`.
 - Depends on: 1
 
 ### 3. Board CRUD and switching — `todo`
