@@ -20,6 +20,9 @@ function renderBoard(overrides: Partial<Parameters<typeof BoardView>[0]> = {}) {
     onAddList: vi.fn(),
     onRenameList: vi.fn(),
     onDeleteList: vi.fn(),
+    onAddCard: vi.fn(),
+    onEditCard: vi.fn(),
+    onDeleteCard: vi.fn(),
     ...overrides,
   };
   render(<BoardView {...props} />);

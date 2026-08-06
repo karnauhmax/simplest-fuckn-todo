@@ -7,9 +7,20 @@ interface Props {
   onAddList: (name: string) => void;
   onRenameList: (listId: string, name: string) => void;
   onDeleteList: (listId: string) => void;
+  onAddCard: (listId: string, title: string) => void;
+  onEditCard: (listId: string, cardId: string, title: string) => void;
+  onDeleteCard: (listId: string, cardId: string) => void;
 }
 
-export function BoardView({ board, onAddList, onRenameList, onDeleteList }: Props) {
+export function BoardView({
+  board,
+  onAddList,
+  onRenameList,
+  onDeleteList,
+  onAddCard,
+  onEditCard,
+  onDeleteCard,
+}: Props) {
   const [draft, setDraft] = useState('');
 
   function addList(event: FormEvent) {
@@ -30,6 +41,9 @@ export function BoardView({ board, onAddList, onRenameList, onDeleteList }: Prop
             list={list}
             onRename={(name) => onRenameList(list.id, name)}
             onDelete={() => onDeleteList(list.id)}
+            onAddCard={(title) => onAddCard(list.id, title)}
+            onEditCard={(cardId, title) => onEditCard(list.id, cardId, title)}
+            onDeleteCard={(cardId) => onDeleteCard(list.id, cardId)}
           />
         ))}
         <form onSubmit={addList}>

@@ -51,6 +51,9 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — a failed write reports through a path that deliberately bypasses `guard()`.** `guard()` clears the error banner whenever its work succeeds, so routing the post-failure refetch through it wiped the very message it was meant to leave on screen — found in the browser, not in the unit tests. The rollback refetch now handles its own errors.
 - **2026-08-06 — the failure "toast" is the existing `role="alert"` paragraph, not a toast component.** Part 7b owns visual design; a dismissable stack of notifications is more machinery than one message needs. The behaviour the plan asks for — tell the user, refetch, don't wedge — is fully present.
 - **2026-08-06 — `InlineEdit` was built in part 4 rather than part 5.** Part 4 asks for "List components with inline edit", which is the same component cards need; part 5 reuses it instead of introducing a second one.
+- **2026-08-06 — deleting a card does not ask for confirmation; deleting a list or board still does.** A card is one line of text that costs seconds to retype, and cards are deleted constantly — a prompt on every one is noise. Lists and boards hide their contents behind a single click, which is what the prompt is for.
+- **2026-08-06 — card actions address a card by `listId` + `cardId` rather than searching the board for the id.** The UI always knows which list it is acting in, and part 6 moves cards between lists, where both ends are named explicitly anyway.
+- **2026-08-06 — `QuickAdd` keeps focus after a submit so cards can be typed in a run.** Entering a backlog is a burst activity; having to re-click the field between cards would make the migrated 88-card board painful to extend.
 - **2026-08-06 — iPhone smokes are pause-and-hand-off.** At the end of parts 7 and 11 the session stops, hands the user a URL + checklist, and the part stays `doing` until the user reports pass/fail. "Mark blocked and continue" and "trust webkit until deploy" were rejected — the plan names real-iPhone drag feel the top delivery risk, so it gates progression.
 
 ## Parts
@@ -97,14 +100,14 @@ Vite+TS+React scaffold, `/shared/types.ts`, `vercel.json`, Vitest wiring; cached
 - Last run: 2026-08-06 — part 3's check re-run first and reproduced (`Test Files 5 passed / Tests 39 passed`, `tsc exit=0`, browser: `after create+rename+reload: [ 'Personal', 'Work renamed' ]`, `after delete+reload: [ 'Personal' ]`). Then: `npm run test` → `Test Files 8 passed (8) / Tests 62 passed (62)`; `npx tsc -b --noEmit` → `tsc exit=0`. Browser burst with PUTs delayed 700ms: `on screen after 5 rapid adds: [ 'A', 'B', 'C', 'D', 'E' ]`; `PUT bodies actually sent: [["A"],["A","B","C","D","E"]]`; `after reload: [ 'A', 'B', 'C', 'D', 'E' ]` — 5 mutations, 2 writes, intermediates dropped, nothing lost. Undelayed run: 5 mutations → 5 PUTs, `after reload: [ 'TODAY', 'THIS WEEK', 'LATER' ]`, `after rename+reload: [ 'DOING', 'THIS WEEK', 'LATER' ]`. Failure path with PUTs forced to 500: `1. toast + rollback: Could not save: HTTP 500 | [ 'KEPT' ]` (optimistic list rolled back by refetch), then with writes restored `2. same board after reload: [ 'KEPT', 'AFTER' ]` — chain not wedged.
 - Depends on: 3
 
-### 5. Cards: quick-add, inline edit, delete — `todo`
+### 5. Cards: quick-add, inline edit, delete — `done`
 
 Card reducer actions (quick-add appends at bottom, edit, delete; `crypto.randomUUID()` ids); QuickAdd, InlineEdit, Card components persisting through the serializer.
 
 **Done when** cards can be quick-added at the bottom of a list, edited inline, and deleted, and a full reload shows the identical cards in the identical order.
 
-- Check: `npm run test` passes including card reducer tests (quick-add appends at bottom) and RTL tests (QuickAdd submits on Enter and clears; InlineEdit commits and escape-cancels); manual: add/edit/delete cards, reload, order and content identical.
-- Last run: not yet
+- Check: `npm run test` passes including card reducer tests (quick-add appends at bottom) and RTL tests (QuickAdd submits on Enter and clears; InlineEdit commits and escape-cancels); manual: add/edit/delete cards, reload, order and content identical. After the reload, re-select the board under test from the dropdown — the app lands on the alphabetically-first board, not the one you were using.
+- Last run: 2026-08-06 — part 4's check re-run first and reproduced (`Test Files 8 passed / Tests 62 passed`, `tsc exit=0`, delayed-PUT burst → `PUTs sent: [["A"],["A","B","C","D","E"]]`, `after reload: [ 'A', 'B', 'C', 'D', 'E' ]`). Then: `npm run test` → `Test Files 9 passed (9) / Tests 77 passed (77)`; `npx tsc -b --noEmit` → `tsc exit=0`. Browser: `1. after quick-add: [{"list":"TODAY","cards":["first","second","third"]},{"list":"LATER","cards":["someday"]}]` (three cards typed with Enter alone, each appended at the bottom); `2. after inline edit: [... "second edited" ...]`; `3. after delete: [{"list":"TODAY","cards":["second edited","third"]},...]`; `4. same board after reload: [{"list":"TODAY","cards":["second edited","third"]},{"list":"LATER","cards":["someday"]}]` — order and content identical.
 - Depends on: 4
 
 ### 6. Card drag-and-drop with animation — `todo`

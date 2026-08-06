@@ -5,7 +5,10 @@ export type BoardAction =
   | { type: 'rename-board'; name: string }
   | { type: 'add-list'; listId: string; name: string }
   | { type: 'rename-list'; listId: string; name: string }
-  | { type: 'delete-list'; listId: string };
+  | { type: 'delete-list'; listId: string }
+  | { type: 'add-card'; listId: string; cardId: string; title: string }
+  | { type: 'edit-card'; listId: string; cardId: string; title: string }
+  | { type: 'delete-card'; listId: string; cardId: string };
 
 function mapList(board: Board, listId: string, update: (list: List) => List): Board {
   let touched = false;
@@ -41,5 +44,28 @@ export function boardReducer(board: Board | null, action: BoardAction): Board | 
       const lists = board.lists.filter((list) => list.id !== action.listId);
       return lists.length === board.lists.length ? board : { ...board, lists };
     }
+
+    case 'add-card':
+      return mapList(board, action.listId, (list) => ({
+        ...list,
+        cards: [...list.cards, { id: action.cardId, title: action.title }],
+      }));
+
+    case 'edit-card':
+      return mapList(board, action.listId, (list) => {
+        let touched = false;
+        const cards = list.cards.map((card) => {
+          if (card.id !== action.cardId || card.title === action.title) return card;
+          touched = true;
+          return { ...card, title: action.title };
+        });
+        return touched ? { ...list, cards } : list;
+      });
+
+    case 'delete-card':
+      return mapList(board, action.listId, (list) => {
+        const cards = list.cards.filter((card) => card.id !== action.cardId);
+        return cards.length === list.cards.length ? list : { ...list, cards };
+      });
   }
 }

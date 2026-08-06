@@ -158,6 +158,13 @@ export function App() {
             onAddList={(name) => commit({ type: 'add-list', listId: crypto.randomUUID(), name })}
             onRenameList={(listId, name) => commit({ type: 'rename-list', listId, name })}
             onDeleteList={(listId) => commit({ type: 'delete-list', listId })}
+            onAddCard={(listId, title) =>
+              commit({ type: 'add-card', listId, cardId: crypto.randomUUID(), title })
+            }
+            onEditCard={(listId, cardId, title) =>
+              commit({ type: 'edit-card', listId, cardId, title })
+            }
+            onDeleteCard={(listId, cardId) => commit({ type: 'delete-card', listId, cardId })}
           />
         ) : (
           summaries.length === 0 && <p>No boards yet. Create one to get started.</p>
