@@ -38,7 +38,9 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npm run dev:api',
+      // Throwaway storage: the dev adapter otherwise persists, and specs would
+      // inherit every board left behind by earlier runs.
+      command: 'DEV_MONGO_EPHEMERAL=1 npm run dev:api',
       // 401 counts as up: the adapter answers, it just refuses anonymous callers.
       url: `${API}/api/boards`,
       reuseExistingServer: !process.env.CI,

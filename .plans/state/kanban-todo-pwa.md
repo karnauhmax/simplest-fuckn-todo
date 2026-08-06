@@ -53,6 +53,9 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — `InlineEdit` was built in part 4 rather than part 5.** Part 4 asks for "List components with inline edit", which is the same component cards need; part 5 reuses it instead of introducing a second one.
 - **2026-08-06 — the design is "paper": warm off-white ground, Instrument Serif for names, IBM Plex Mono for everything else, one vermilion accent, hairlines instead of shadows.** Chosen over a Trello-like card-and-shadow look, which the plan explicitly rules out. The serif carries board and list names, mono carries card text and chrome, so the two never compete. The only element allowed to lift off the plane is the drag overlay — that is what makes a drag legible. Fonts come from Google Fonts over the network, which is consistent with an online-only app but means they are not precached by the service worker.
 - **2026-08-06 — the first styling attempt shipped a full-width ruled-paper background and was thrown away.** Every automated check passed while the page rendered stray rules across dead space below the columns. Screenshots are the check for this part; the suite cannot see layout.
+- **2026-08-06 — the dev adapter now persists to `.dev-mongo/` by default; `DEV_MONGO_EPHEMERAL=1` restores throwaway storage and the Playwright harness sets it.** With ephemeral storage the user could not keep a migrated board across a restart, which makes local testing of a 88-card import pointless. Consequence: `.dev-mongo/` is gitignored and stale local boards persist until deleted.
+- **2026-08-06 — part 12's script was written and verified locally, ahead of the deploy it depends on.** The plan orders it after part 11, but the parser and its 88-card output can be proven against the local database, and the user asked to test locally first. Only the "against the deployed app" half of its Done-when is outstanding. The script is an import, not a sync: running it twice creates two boards.
+- **2026-08-06 — the migration imports `- [x]` lines as ordinary cards.** This app has no card state, and dropping checked items would silently lose the 66-card Done column. Cards before any heading are dropped rather than invented into a list.
 - **2026-08-06 — WebKit was installed with its system dependencies (`sudo npx playwright install-deps webkit`, ~25 apt packages).** Running the touch spec on Chromium's iPhone profile instead was the alternative and was rejected: Safari's engine *is* the delivery risk, and Chromium touch emulation already disagreed with it once — `new Touch()` works in Chromium and throws `Illegal constructor` in WebKit. The touch shim now picks whichever constructor pair the engine offers.
 - **2026-08-06 — the PWA specs run against `vite preview` as their own Playwright project, not against the dev server with `devOptions.enabled`.** A service worker only exists in a real build, and enabling a dev-mode worker would have put caching in the path of every other spec. Cost: `npm run e2e` now builds the app first, adding a few seconds, and `vite.config.ts` needs a `preview.proxy` mirroring `server.proxy`.
 - **2026-08-06 — `persisted(page, contains)` waits for a specific write, not "the next PUT".** Writes are serialised per board, so waiting for the next one routinely settled on an earlier queued write and left the interesting one in flight — which showed up as a cancelled-drag spec counting one write it had not caused.
@@ -192,7 +195,9 @@ Remaining specs on the part-9 harness: auth (no/wrong/correct secret, persists a
 - Last run: 2026-08-06 — `npm run e2e` → `13 passed (20.8s)`, repeated → `13 passed (18.7s)`: 4 auth specs, golden path, burst-coalescing, list-reorder, cancelled-drag (chromium); `a finger drags a card across lists once it has dwelled` and `a flick that never dwells scrolls instead of dragging` (webkit-iphone); installability + service worker, shell-precached-never-API, and deep-link fallback (pwa). `npm run test` → `Tests 93 passed (93)`; `npx tsc -b --noEmit` → `tsc exit=0`.
 - Depends on: 8, 9
 
-### 11. Deploy at $0 and close out — `todo`
+### 11. Deploy at $0 and close out — `blocked`
+
+Blocked on account access: Atlas and Vercel both need the user's own login. README has the exact steps; `docs/smoke.md` has the checklists to fill in afterwards.
 
 Atlas M0 (allowlist 0.0.0.0/0 — auth is app-layer) + Vercel Hobby with `MONGODB_URI`, `APP_SECRET`; manual smoke against the Vercel preview deployment; real-iPhone install + touch smoke re-confirmed.
 
@@ -202,14 +207,16 @@ Atlas M0 (allowlist 0.0.0.0/0 — auth is app-layer) + Vercel Hobby with `MONGOD
 - Last run: not yet
 - Depends on: 10
 
-### 12. Migrate the existing Obsidian board verbatim — `todo`
+### 12. Migrate the existing Obsidian board verbatim — `doing`
+
+Script written and verified against the local database; the deployed-app half of "Done when" waits on part 11.
 
 Throwaway script `/scripts/migrate-obsidian.ts` (not app code): parse `existing-tasks.md` — `##` headings become lists, `- [ ]` lines become card titles, the `%% kanban:settings %%` block is ignored — and insert one board document directly into the Atlas `boards` collection (direct Mongo insert per user decision), using `/shared/types.ts` shapes and `crypto.randomUUID()` ids.
 
 **Done when** the deployed app shows the migrated board with all six lists (On Hold, TODAY, THIS WEEK, LATER, Done, Archive) and all 88 cards in exact source text and order, and dragging or editing a migrated card persists normally.
 
 - Check: against the deployed app, the migrated board's list names and card count match the source file (`grep -c '^- \[ \]' existing-tasks.md` equals the card count shown); editing and dragging a migrated card survives reload.
-- Last run: not yet
+- Last run: 2026-08-06 — locally, not yet against a deployment. `npx tsx scripts/migrate-obsidian.ts --dry-run` → `parsed "Personal": 6 lists, 88 cards` / `On Hold: 9, TODAY: 8, THIS WEEK: 2, LATER: 1, Done: 66, Archive: 2` — matches the plan's expected counts and `grep -c '^- \[ \]' existing-tasks.md` → 88. Inserted into the local database and loaded in Chromium: all six lists with counts `9,8,2,1,66,2`, total 88, first TODAY card `сделать кастомный deep-interview более вертикальным скиллом` (Cyrillic intact). Dragging a migrated card across lists and reloading → `counts after drag + reload: [9,7,3,1,66,2] | total: 88`. Six parser unit tests cover headings, card count, exact titles and order, the ignored settings block, checked items, and cards before any heading.
 - Depends on: 11
 
 ## Open questions

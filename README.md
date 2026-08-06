@@ -15,6 +15,10 @@ npm run dev        # Vite on http://localhost:5173, proxying /api to the adapter
 `npm run dev:api` defaults `APP_SECRET` to `dev-secret` and prints it. Enter that
 on the unlock screen.
 
+It keeps its database in `.dev-mongo/` (gitignored), so boards survive a restart.
+Delete that directory to start clean, or set `DEV_MONGO_EPHEMERAL=1` for
+throwaway storage — which is what the E2E suite runs with.
+
 | Command | What it does |
 | --- | --- |
 | `npm run dev` / `npm run dev:api` | the two halves of local development |
@@ -23,6 +27,7 @@ on the unlock screen.
 | `npm run build` | typecheck, then production build into `dist/` |
 | `npm run preview` | serve the production build (the only way to exercise the service worker) |
 | `node scripts/make-icons.mjs` | regenerate the PWA icons from one SVG |
+| `npx tsx scripts/migrate-obsidian.ts` | import an Obsidian Kanban board (see below) |
 
 ## Environment
 
@@ -60,6 +65,34 @@ Deliberately none. The service worker precaches the app shell only; every `/api`
 request goes to the network. A cached board would be a stale board, and a cached
 `401` would look like a lockout. Offline, the shell loads and the board reports
 that it could not reach the server.
+
+## Importing an Obsidian Kanban board
+
+`scripts/migrate-obsidian.ts` reads Obsidian Kanban markdown — `##` headings
+become lists, `- [ ]` lines become cards, the trailing `%% kanban:settings %%`
+block is ignored — and inserts one board straight into the collection.
+
+```bash
+npx tsx scripts/migrate-obsidian.ts --dry-run           # parse and print the counts
+MONGODB_URI="$(cat .dev-mongo-uri)" \
+  npx tsx scripts/migrate-obsidian.ts --name "Personal" # into the local dev database
+MONGODB_URI="mongodb+srv://..." \
+  npx tsx scripts/migrate-obsidian.ts --name "Personal" # into Atlas
+```
+
+It defaults to `existing-tasks.md`; pass a path to use another file. Running it
+twice creates two boards — it is an import, not a sync.
+
+## Deploying
+
+1. **Atlas**: create a free M0 cluster and a database user. Allow access from
+   anywhere (`0.0.0.0/0`) — the shared secret is the boundary, not the network,
+   and Vercel's functions have no fixed egress IP on Hobby.
+2. **Vercel**: import the repo. The framework preset is Vite; `vercel.json`
+   already routes `/api/*` to the functions and everything else to the SPA.
+3. Set `MONGODB_URI` and `APP_SECRET` in the project's environment variables for
+   both Production and Preview.
+4. Deploy, then walk the checklists in [`docs/smoke.md`](docs/smoke.md).
 
 ## Manual checks
 
