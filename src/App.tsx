@@ -174,6 +174,7 @@ export function App() {
               commit({ type: 'edit-card', listId, cardId, title })
             }
             onDeleteCard={(listId, cardId) => commit({ type: 'delete-card', listId, cardId })}
+            onMoveCard={(move) => commit({ type: 'move-card', ...move })}
           />
         ) : (
           summaries.length === 0 && <p>No boards yet. Create one to get started.</p>

@@ -23,6 +23,7 @@ function renderBoard(overrides: Partial<Parameters<typeof BoardView>[0]> = {}) {
     onAddCard: vi.fn(),
     onEditCard: vi.fn(),
     onDeleteCard: vi.fn(),
+    onMoveCard: vi.fn(),
     ...overrides,
   };
   render(<BoardView {...props} />);

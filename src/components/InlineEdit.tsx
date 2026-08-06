@@ -28,6 +28,10 @@ export function InlineEdit({ value, label, onCommit }: Props) {
   }
 
   function keyDown(event: KeyboardEvent<HTMLInputElement>) {
+    // A card carries dnd-kit's keyboard listeners, which claim Space as the
+    // drag activator; without this, spaces never reach the field.
+    event.stopPropagation();
+
     if (event.key === 'Enter') {
       event.preventDefault();
       commit();
@@ -53,6 +57,7 @@ export function InlineEdit({ value, label, onCommit }: Props) {
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
       onKeyDown={keyDown}
+      onPointerDown={(event) => event.stopPropagation()}
     />
   );
 }

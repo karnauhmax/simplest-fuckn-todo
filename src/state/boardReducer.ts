@@ -8,7 +8,22 @@ export type BoardAction =
   | { type: 'delete-list'; listId: string }
   | { type: 'add-card'; listId: string; cardId: string; title: string }
   | { type: 'edit-card'; listId: string; cardId: string; title: string }
-  | { type: 'delete-card'; listId: string; cardId: string };
+  | { type: 'delete-card'; listId: string; cardId: string }
+  | {
+      type: 'move-card';
+      fromListId: string;
+      toListId: string;
+      cardId: string;
+      toIndex: number;
+    };
+
+export function listIdOfCard(board: Board, cardId: string): string | null {
+  return board.lists.find((list) => list.cards.some((card) => card.id === cardId))?.id ?? null;
+}
+
+function clamp(index: number, length: number): number {
+  return Math.max(0, Math.min(index, length));
+}
 
 function mapList(board: Board, listId: string, update: (list: List) => List): Board {
   let touched = false;
@@ -67,5 +82,35 @@ export function boardReducer(board: Board | null, action: BoardAction): Board | 
         const cards = list.cards.filter((card) => card.id !== action.cardId);
         return cards.length === list.cards.length ? list : { ...list, cards };
       });
+
+    case 'move-card': {
+      const from = board.lists.find((list) => list.id === action.fromListId);
+      const to = board.lists.find((list) => list.id === action.toListId);
+      if (!from || !to) return board;
+
+      const at = from.cards.findIndex((card) => card.id === action.cardId);
+      if (at === -1) return board;
+      const card = from.cards[at]!;
+
+      if (from === to) {
+        const cards = from.cards.filter((c) => c.id !== action.cardId);
+        const target = clamp(action.toIndex, cards.length);
+        if (target === at) return board;
+        cards.splice(target, 0, card);
+        return { ...board, lists: board.lists.map((l) => (l === from ? { ...l, cards } : l)) };
+      }
+
+      const fromCards = from.cards.filter((c) => c.id !== action.cardId);
+      const toCards = [...to.cards];
+      toCards.splice(clamp(action.toIndex, toCards.length), 0, card);
+      return {
+        ...board,
+        lists: board.lists.map((list) => {
+          if (list === from) return { ...list, cards: fromCards };
+          if (list === to) return { ...list, cards: toCards };
+          return list;
+        }),
+      };
+    }
   }
 }

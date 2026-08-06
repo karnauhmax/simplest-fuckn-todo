@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import type { Board } from '../../shared/types.js';
-import { boardReducer } from '../../src/state/boardReducer.js';
+import { boardReducer, listIdOfCard } from '../../src/state/boardReducer.js';
 
 const board: Board = {
   id: 'b1',
@@ -92,6 +92,103 @@ test('delete-card removes only the target card', () => {
 
   expect(next.lists[0]!.cards).toEqual([]);
   expect(next.lists[0]!.name).toBe('TODAY');
+});
+
+const dragBoard: Board = {
+  id: 'b1',
+  name: 'Drag',
+  lists: [
+    {
+      id: 'l1',
+      name: 'TODAY',
+      cards: [
+        { id: 'c1', title: 'one' },
+        { id: 'c2', title: 'two' },
+        { id: 'c3', title: 'three' },
+      ],
+    },
+    { id: 'l2', name: 'LATER', cards: [{ id: 'c4', title: 'four' }] },
+    { id: 'l3', name: 'EMPTY', cards: [] },
+  ],
+};
+
+const titles = (b: Board, listId: string) =>
+  b.lists.find((l) => l.id === listId)!.cards.map((c) => c.title);
+
+test('move-card reorders within a list, downwards', () => {
+  const next = boardReducer(dragBoard, {
+    type: 'move-card',
+    fromListId: 'l1',
+    toListId: 'l1',
+    cardId: 'c1',
+    toIndex: 2,
+  })!;
+
+  expect(titles(next, 'l1')).toEqual(['two', 'three', 'one']);
+});
+
+test('move-card reorders within a list, upwards', () => {
+  const next = boardReducer(dragBoard, {
+    type: 'move-card',
+    fromListId: 'l1',
+    toListId: 'l1',
+    cardId: 'c3',
+    toIndex: 0,
+  })!;
+
+  expect(titles(next, 'l1')).toEqual(['three', 'one', 'two']);
+});
+
+test('move-card moves across lists at the requested index', () => {
+  const next = boardReducer(dragBoard, {
+    type: 'move-card',
+    fromListId: 'l1',
+    toListId: 'l2',
+    cardId: 'c2',
+    toIndex: 0,
+  })!;
+
+  expect(titles(next, 'l1')).toEqual(['one', 'three']);
+  expect(titles(next, 'l2')).toEqual(['two', 'four']);
+});
+
+test('move-card moves into an empty list', () => {
+  const next = boardReducer(dragBoard, {
+    type: 'move-card',
+    fromListId: 'l1',
+    toListId: 'l3',
+    cardId: 'c1',
+    toIndex: 0,
+  })!;
+
+  expect(titles(next, 'l1')).toEqual(['two', 'three']);
+  expect(titles(next, 'l3')).toEqual(['one']);
+});
+
+test('move-card clamps an out-of-range index to the end', () => {
+  const next = boardReducer(dragBoard, {
+    type: 'move-card',
+    fromListId: 'l1',
+    toListId: 'l2',
+    cardId: 'c1',
+    toIndex: 99,
+  })!;
+
+  expect(titles(next, 'l2')).toEqual(['four', 'one']);
+});
+
+test('listIdOfCard finds the owning list, or null', () => {
+  expect(listIdOfCard(dragBoard, 'c4')).toBe('l2');
+  expect(listIdOfCard(dragBoard, 'nope')).toBeNull();
+});
+
+test.each([
+  ['move to the same position', { type: 'move-card', fromListId: 'l1', toListId: 'l1', cardId: 'c2', toIndex: 1 }],
+  ['move an unknown card', { type: 'move-card', fromListId: 'l1', toListId: 'l2', cardId: 'nope', toIndex: 0 }],
+  ['move from an unknown list', { type: 'move-card', fromListId: 'nope', toListId: 'l2', cardId: 'c1', toIndex: 0 }],
+  ['move to an unknown list', { type: 'move-card', fromListId: 'l1', toListId: 'nope', cardId: 'c1', toIndex: 0 }],
+] as const)('%s returns the identical board so no write is queued', (_label, action) => {
+  expect(boardReducer(dragBoard, action)).toBe(dragBoard);
 });
 
 test.each([

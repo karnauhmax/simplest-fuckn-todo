@@ -1,7 +1,11 @@
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { List } from '../../shared/types.js';
 import { InlineEdit } from './InlineEdit.js';
-import { CardItem } from './CardItem.js';
+import { SortableCardItem } from './SortableCardItem.js';
 import { QuickAdd } from './QuickAdd.js';
+
+export const LIST_DROPPABLE_PREFIX = 'list:';
 
 interface Props {
   list: List;
@@ -20,6 +24,8 @@ export function ListColumn({
   onEditCard,
   onDeleteCard,
 }: Props) {
+  const { setNodeRef } = useDroppable({ id: `${LIST_DROPPABLE_PREFIX}${list.id}` });
+
   function remove() {
     if (!window.confirm(`Delete list "${list.name}"?`)) return;
     onDelete();
@@ -33,16 +39,21 @@ export function ListColumn({
           Delete
         </button>
       </header>
-      <ul>
-        {list.cards.map((card) => (
-          <CardItem
-            key={card.id}
-            card={card}
-            onEdit={(title) => onEditCard(card.id, title)}
-            onDelete={() => onDeleteCard(card.id)}
-          />
-        ))}
-      </ul>
+      <SortableContext
+        items={list.cards.map((card) => card.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <ul ref={setNodeRef}>
+          {list.cards.map((card) => (
+            <SortableCardItem
+              key={card.id}
+              card={card}
+              onEdit={(title) => onEditCard(card.id, title)}
+              onDelete={() => onDeleteCard(card.id)}
+            />
+          ))}
+        </ul>
+      </SortableContext>
       <QuickAdd listName={list.name} onAdd={onAddCard} />
     </section>
   );
