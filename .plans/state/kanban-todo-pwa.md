@@ -35,6 +35,7 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — `playwright` (the library, not `@playwright/test`) installed in part 1 to verify "visible in the browser".** Browsers were already cached in the image. Asserting DOM text through a real Chromium was preferred over an RTL/jsdom stand-in, which would not have exercised the Vite proxy → handler → Mongo path. Part 9 adds `@playwright/test` on top.
 - **2026-08-06 — board id is stored as Mongo `_id` (string), not a separate `id` field.** `toBoard()` in `api/_lib/db.ts` maps `_id → id` at the boundary. Keeping both was the alternative; one source of identity avoids the two drifting.
 - **2026-08-06 — part 12 (Obsidian migration) was missing from this file and has been added.** It exists in the plan (phase 9) and slices (slice 12); the state plan stopped at 11. Added verbatim from the slice so "every part done" means the whole scope.
+- **2026-08-06 — visual design is its own part (7b), between 7 and 8, in minimal monochrome.** The plan never named styling as a deliverable; parts 1–7 carry only the layout drag needs. User chose a dedicated pass over folding styling into parts 4–7 (keeps those parts lean) and over polishing after deploy. Consequence, accepted: the binding real-iPhone smoke at the end of part 7 happens on a plain board, so drag *feel* is re-confirmed at part 11 on the styled one. Direction: near-black on near-white, one accent, typography and whitespace over chrome — not a Trello clone.
 - **2026-08-06 — iPhone smokes are pause-and-hand-off.** At the end of parts 7 and 11 the session stops, hands the user a URL + checklist, and the part stays `doing` until the user reports pass/fail. "Mark blocked and continue" and "trust webkit until deploy" were rejected — the plan names real-iPhone drag feel the top delivery risk, so it gates progression.
 
 ## Parts
@@ -110,6 +111,16 @@ Horizontal sortable lists; TouchSensor ≈200ms delay + tolerance; `touch-action
 - Check: `npm run test` passes including reorder-lists reducer tests; manual: drag a list, reload, order intact; the smoke checklist (README or `docs/smoke.md`) contains a dated pass entry for real-iPhone touch drag — `grep` for that entry succeeds.
 - Last run: not yet
 - Depends on: 6
+
+### 7b. Visual design pass — minimal monochrome — `todo`
+
+One pass over the whole surface: type scale, spacing, near-black/near-white palette with a single accent, board/list/card surfaces, quick-add and inline-edit affordances, drag and drag-overlay states, focus-visible rings, responsive down to an iPhone viewport. No new behaviour, no new components — styling and markup-for-styling only.
+
+**Done when** the board reads as a deliberately designed tool at both desktop and iPhone widths, drag and drag-overlay states are visually distinct, and every existing test still passes unchanged in behaviour.
+
+- Check: `npm run test` passes; `npx tsc -b --noEmit` clean; screenshots at 1280px and 390px widths show the styled board, a drag-in-progress state, and an inline edit; keyboard focus is visible on every interactive element.
+- Last run: not yet
+- Depends on: 7
 
 ### 8. PWA installability — `todo`
 
