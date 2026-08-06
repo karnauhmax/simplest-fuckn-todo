@@ -96,9 +96,16 @@ export async function dragTo(page: Page, source: Locator, target: Locator, optio
   await expect(page.locator('.overlay-list, .overlay-card')).toHaveCount(0);
 }
 
-/** Waits for the write queue to have flushed by reading the board back. */
-export async function persisted(page: Page) {
+/**
+ * Resolves when a write lands. Pass `contains` to wait for one specific write:
+ * writes are serialised per board, so waiting for "the next PUT" can settle on
+ * an earlier queued one and leave the interesting write still in flight.
+ */
+export async function persisted(page: Page, contains?: string) {
   await page.waitForResponse(
-    (response) => response.request().method() === 'PUT' && response.status() === 200,
+    (response) =>
+      response.request().method() === 'PUT' &&
+      response.status() === 200 &&
+      (contains === undefined || (response.request().postData() ?? '').includes(contains)),
   );
 }

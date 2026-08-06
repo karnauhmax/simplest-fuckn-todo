@@ -53,6 +53,9 @@ Append. Do not rewrite an entry, and do not delete one — a decision that turne
 - **2026-08-06 — `InlineEdit` was built in part 4 rather than part 5.** Part 4 asks for "List components with inline edit", which is the same component cards need; part 5 reuses it instead of introducing a second one.
 - **2026-08-06 — the design is "paper": warm off-white ground, Instrument Serif for names, IBM Plex Mono for everything else, one vermilion accent, hairlines instead of shadows.** Chosen over a Trello-like card-and-shadow look, which the plan explicitly rules out. The serif carries board and list names, mono carries card text and chrome, so the two never compete. The only element allowed to lift off the plane is the drag overlay — that is what makes a drag legible. Fonts come from Google Fonts over the network, which is consistent with an online-only app but means they are not precached by the service worker.
 - **2026-08-06 — the first styling attempt shipped a full-width ruled-paper background and was thrown away.** Every automated check passed while the page rendered stray rules across dead space below the columns. Screenshots are the check for this part; the suite cannot see layout.
+- **2026-08-06 — WebKit was installed with its system dependencies (`sudo npx playwright install-deps webkit`, ~25 apt packages).** Running the touch spec on Chromium's iPhone profile instead was the alternative and was rejected: Safari's engine *is* the delivery risk, and Chromium touch emulation already disagreed with it once — `new Touch()` works in Chromium and throws `Illegal constructor` in WebKit. The touch shim now picks whichever constructor pair the engine offers.
+- **2026-08-06 — the PWA specs run against `vite preview` as their own Playwright project, not against the dev server with `devOptions.enabled`.** A service worker only exists in a real build, and enabling a dev-mode worker would have put caching in the path of every other spec. Cost: `npm run e2e` now builds the app first, adding a few seconds, and `vite.config.ts` needs a `preview.proxy` mirroring `server.proxy`.
+- **2026-08-06 — `persisted(page, contains)` waits for a specific write, not "the next PUT".** Writes are serialised per board, so waiting for the next one routinely settled on an earlier queued write and left the interesting one in flight — which showed up as a cancelled-drag spec counting one write it had not caused.
 - **2026-08-06 — every E2E locator naming a card must be `exact`.** dnd-kit gives each sortable `li` `role="button"` with an accessible name concatenating the card title and its delete label, so `getByRole('button', { name: title })` matches three elements. `card()` and `deleteCardButton()` in `e2e/helpers.ts` exist so this is decided once.
 - **2026-08-06 — `dragTo` waits for the drag overlay to unmount, not for a timeout.** dnd-kit swallows the click that lands during its drop animation, so a test that clicks straight after a drop silently does nothing and fails later somewhere unrelated — which is exactly how it presented. Waiting on our own `.overlay-list`/`.overlay-card` disappearing is a deterministic end-of-gesture signal.
 - **2026-08-06 — E2E runs single-worker against one shared database.** Two Playwright webServers (the dev adapter and Vite) with one ephemeral Mongo behind them; parallel specs would race on the same boards collection. Specs create their own board and assert only within it.
@@ -179,14 +182,14 @@ Dev adapter (Node server mounting the real handler functions under the Vite prox
 - Last run: 2026-08-06 — `npm run e2e` → `1 passed (3.9s)`, `✓ 1 [chromium] › e2e/golden-path.spec.ts:15:1 › the whole loop: unlock, build a board, rearrange it, and reload into the same state`. `npm run test` → `Tests 93 passed (93)`; `npx tsc -b --noEmit` → `tsc exit=0`.
 - Depends on: 7
 
-### 10. E2E hardening: auth, races, touch, PWA smoke — `todo`
+### 10. E2E hardening: auth, races, touch, PWA smoke — `done`
 
 Remaining specs on the part-9 harness: auth (no/wrong/correct secret, persists across reload); rapid-mutation burst + reload; list reorder + reload; webkit iPhone-profile touch drag via manually dispatched touch events with >200ms dwell; PWA smoke (standalone manifest + SW registered, `devOptions.enabled` or `vite preview`).
 
 **Done when** all five specs pass, including the webkit touch spec moving a card across lists and the PWA smoke observing a registered service worker.
 
-- Check: `npm run e2e` passes with both projects (chromium + webkit) and all five specs reported passed; `npm run test` still green.
-- Last run: not yet
+- Check: `npm run e2e` passes with all three projects (chromium, webkit-iphone, pwa) and every spec reported passed; `npm run test` still green. Kill anything already listening on :5173, :3001 and :4173 first — `reuseExistingServer` will otherwise hand the run a stale server and the failures look like app bugs.
+- Last run: 2026-08-06 — `npm run e2e` → `13 passed (20.8s)`, repeated → `13 passed (18.7s)`: 4 auth specs, golden path, burst-coalescing, list-reorder, cancelled-drag (chromium); `a finger drags a card across lists once it has dwelled` and `a flick that never dwells scrolls instead of dragging` (webkit-iphone); installability + service worker, shell-precached-never-API, and deep-link fallback (pwa). `npm run test` → `Tests 93 passed (93)`; `npx tsc -b --noEmit` → `tsc exit=0`.
 - Depends on: 8, 9
 
 ### 11. Deploy at $0 and close out — `todo`

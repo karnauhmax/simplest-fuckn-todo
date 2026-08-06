@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const API = 'http://localhost:3001';
 const APP = 'http://localhost:5173';
+const PREVIEW = 'http://localhost:4173';
 
 export default defineConfig({
   testDir: 'e2e',
@@ -15,7 +16,26 @@ export default defineConfig({
     baseURL: APP,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: ['**/touch.spec.ts', '**/pwa.spec.ts'],
+    },
+    {
+      // Safari's engine on an iPhone profile: the closest thing to the real
+      // delivery risk that runs in CI.
+      name: 'webkit-iphone',
+      use: { ...devices['iPhone 13'] },
+      testMatch: '**/touch.spec.ts',
+    },
+    {
+      // Service workers only exist in the production build.
+      name: 'pwa',
+      use: { ...devices['Desktop Chrome'], baseURL: PREVIEW },
+      testMatch: '**/pwa.spec.ts',
+    },
+  ],
   webServer: [
     {
       command: 'npm run dev:api',
@@ -29,6 +49,12 @@ export default defineConfig({
       url: APP,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+    },
+    {
+      command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+      url: `${PREVIEW}/manifest.webmanifest`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
     },
   ],
 });
