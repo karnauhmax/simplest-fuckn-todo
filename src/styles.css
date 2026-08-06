@@ -556,12 +556,18 @@ select {
     max-height: none;
   }
 
+  .board__title {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+
   .board__rail {
     scroll-snap-type: x mandatory;
   }
 
+  /* No hover on a phone, so delete has to stay reachable — but quiet. */
   .card__delete {
-    opacity: 1;
+    opacity: 0.4;
   }
 }
 
