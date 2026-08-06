@@ -1,0 +1,37 @@
+{
+  "active": false,
+  "interview_id": "b7e3f2a1-4c8d-4e5f-9a2b-6d1c3e7f8a90",
+  "type": "greenfield",
+  "initial_idea": "Personal-only Kanban todo webapp + PWA (desktop + mobile), cloning the UX/animations of the obsidian-kanban plugin (boards, lists, cards, drag-and-drop) but with no markdown-file backing. Minimal scope: create groups (lists) of cards, add/edit/delete cards, move cards to done. React frontend, backend framework open, tests mandatory, free hosting + free DB (Vercel + MongoDB suggested). Never published for other users.",
+  "initial_context_summary": null,
+  "rounds": [
+    {"n": 1, "q": "Card content scope", "a": "Plain text title only", "ambiguity": 0.71},
+    {"n": 2, "q": "Access protection", "a": "Single shared secret per device", "ambiguity": 0.66},
+    {"n": 3, "q": "PWA meaning", "a": "Installable, online-only", "ambiguity": 0.60},
+    {"n": 4, "q": "Test scope", "a": "E2E + unit/component", "ambiguity": 0.50},
+    {"n": 5, "q": "Stack shape (contrarian)", "a": "Vercel serverless + Mongo Atlas, no framework", "ambiguity": 0.42},
+    {"n": 6, "q": "Done semantics", "a": "Done is a regular list", "ambiguity": 0.32},
+    {"n": 7, "q": "Op checklist (simplifier)", "a": "Confirmed verbatim", "ambiguity": 0.22},
+    {"n": 8, "q": "Animation bar", "a": "Smooth drag + settle, dnd-kit-style", "ambiguity": 0.19},
+    {"n": 9, "q": "Mobile OS", "a": "iOS (iPhone)", "ambiguity": 0.17}
+  ],
+  "current_ambiguity": 0.17,
+  "threshold": 0.2,
+  "threshold_source": "default",
+  "codebase_context": null,
+  "spec_path": ".plans/specs/deep-interview-kanban-todo-pwa.md",
+  "topology": {
+    "status": "confirmed",
+    "confirmed_at": "2026-08-06T16:30:00Z",
+    "components": [
+      {"id": "kanban-ui", "name": "Kanban UI", "description": "React boards/lists/cards with drag-and-drop and obsidian-kanban-style animations", "status": "active", "evidence": ["initial prompt: 'same functionality this plugin has'"], "clarity_scores": {"goal": null, "constraints": null, "criteria": null}, "weakest_dimension": null},
+      {"id": "backend", "name": "Backend + persistence", "description": "API and free-tier database", "status": "active", "evidence": ["initial prompt: 'vercel + mongodb worth checking'"], "clarity_scores": {"goal": null, "constraints": null, "criteria": null}, "weakest_dimension": null},
+      {"id": "pwa", "name": "PWA shell", "description": "Installable on desktop and mobile", "status": "active", "evidence": ["initial prompt: 'webapp + pwa'"], "clarity_scores": {"goal": null, "constraints": null, "criteria": null}, "weakest_dimension": null},
+      {"id": "tests", "name": "Test suite", "description": "Mandatory tests across the stack", "status": "active", "evidence": ["initial prompt: 'tests are mandatory'"], "clarity_scores": {"goal": null, "constraints": null, "criteria": null}, "weakest_dimension": null}
+    ],
+    "deferrals": [],
+    "last_targeted_component_id": null
+  },
+  "challenge_modes_used": ["contrarian", "simplifier"],
+  "ontology_snapshots": [{"round": 9, "entities": ["Board", "List", "Card", "Secret"], "stability_ratio": 1.0}]
+}

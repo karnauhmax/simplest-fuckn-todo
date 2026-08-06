@@ -1,0 +1,16 @@
+{
+  "active": false,
+  "slug": "kanban-todo-pwa",
+  "idea": "Personal Kanban todo webapp + PWA (React, Vercel serverless, Mongo Atlas, shared-secret auth, E2E+unit tests)",
+  "mode": "deliberate",
+  "spec_path": ".plans/specs/deep-interview-kanban-todo-pwa.md",
+  "round": 2,
+  "max_rounds": 5,
+  "rounds": [
+    {"n": 1, "planner": "round-1-planner.md", "architect": "REVISION NEEDED (round-1-architect.md): 2 major (write serialization, persist on dragEnd only), 3 minor (drop PATCH, timingSafeEqual length trap, GET payload shape), open questions resolved", "critic": "not reached"},
+    {"n": 2, "planner": "round-2-planner.md (all 7 findings fixed)", "architect": "APPROVE (round-2-architect.md)", "critic": "APPROVE (round-2-critic.md)"}
+  ],
+  "plan_path": ".plans/plans/ralplan-kanban-todo-pwa.md",
+  "status": "consensus",
+  "notes": "ralplan-* role agents not installed; using builtin planner + reviewer(architect)/reviewer(critic) with role prompts inlined per task, fresh context each"
+}
