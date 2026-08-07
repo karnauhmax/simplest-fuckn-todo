@@ -85,13 +85,22 @@ twice creates two boards — it is an import, not a sync.
 
 ## Deploying
 
-1. **Atlas**: create a free M0 cluster and a database user. Allow access from
-   anywhere (`0.0.0.0/0`) — the shared secret is the boundary, not the network,
-   and Vercel's functions have no fixed egress IP on Hobby.
+1. **Atlas**: create a free M0 cluster on **AWS `eu-central-1` (Frankfurt)** and a
+   database user. Allow access from anywhere (`0.0.0.0/0`) — the shared secret is
+   the boundary, not the network, and Vercel's functions have no fixed egress IP
+   on Hobby.
 2. **Vercel**: import the repo. The framework preset is Vite; `vercel.json`
-   already routes `/api/*` to the functions and everything else to the SPA.
+   already routes `/api/*` to the functions, sends everything else to the SPA,
+   and pins the functions to `fra1` — the same Frankfurt datacentre as the
+   cluster, so each API call is one short hop rather than a transatlantic one.
+   Moving the cluster elsewhere means changing `regions` to match.
 3. Set `MONGODB_URI` and `APP_SECRET` in the project's environment variables for
-   both Production and Preview.
+   both Production and Preview. Add `MONGOMS_DISABLE_POSTINSTALL=1` too: the
+   local dev adapter's `mongodb-memory-server` would otherwise download a Mongo
+   binary during every build.
+
+   The database name is not read from the URI — it is `todo`, overridable with
+   `MONGODB_DB`.
 4. Deploy, then walk the checklists in [`docs/smoke.md`](docs/smoke.md).
 
 ## Manual checks
