@@ -167,6 +167,7 @@ export function App() {
         )}
         {board ? (
           <BoardView
+            key={board.id}
             board={board}
             onAddList={(name) => commit({ type: 'add-list', listId: crypto.randomUUID(), name })}
             onRenameList={(listId, name) => commit({ type: 'rename-list', listId, name })}

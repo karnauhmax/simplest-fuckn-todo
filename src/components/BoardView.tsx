@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import type { Board, Card, List } from '../../shared/types.js';
 import { boardReducer, listIdOfCard } from '../state/boardReducer.js';
+import { loadCollapsed, saveCollapsed } from '../state/collapsed.js';
 import { CardItem } from './CardItem.js';
 import { CARDS_PREFIX, LIST_PREFIX, ListColumn } from './ListColumn.js';
 
@@ -75,6 +76,7 @@ export function BoardView({
   onMoveList,
 }: Props) {
   const [draft, setDraft] = useState('');
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed(board.id));
   const [preview, setPreview] = useState<Board | null>(null);
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [activeList, setActiveList] = useState<List | null>(null);
@@ -208,6 +210,13 @@ export function BoardView({
     onMoveCard({ fromListId: origin.listId, toListId, cardId: id, toIndex });
   }
 
+  function toggleCollapsed(listId: string) {
+    const next = new Set(collapsed);
+    if (!next.delete(listId)) next.add(listId);
+    saveCollapsed(board.id, next);
+    setCollapsed(next);
+  }
+
   function addList(event: FormEvent) {
     event.preventDefault();
     const name = draft.trim();
@@ -241,6 +250,8 @@ export function BoardView({
                 key={list.id}
                 list={list}
                 index={index}
+                collapsed={collapsed.has(list.id)}
+                onToggleCollapsed={() => toggleCollapsed(list.id)}
                 onRename={(name) => onRenameList(list.id, name)}
                 onDelete={() => onDeleteList(list.id)}
                 onAddCard={(title) => onAddCard(list.id, title)}

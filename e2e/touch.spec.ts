@@ -120,6 +120,7 @@ test('a finger drags a card across lists once it has dwelled', async ({ page }) 
   ]);
 
   await page.reload();
+  await expect(card(page, 'THERE', 'carried by thumb')).toBeVisible();
   expect(await boardState(page)).toEqual([
     { list: 'HERE', cards: [] },
     { list: 'THERE', cards: ['carried by thumb'] },

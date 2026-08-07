@@ -343,6 +343,39 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
+.list__toggle {
+  flex: none;
+  border: 0;
+  background: none;
+  /* Negative margin keeps the glyph tight while the tap target stays thumb-sized. */
+  padding: 0.4rem 0.3rem;
+  margin: -0.4rem -0.15rem;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.list__toggle:hover {
+  color: var(--ink);
+}
+
+/* ---------- collapsed list ---------- */
+
+.list--collapsed {
+  flex-basis: 2.75rem;
+}
+
+.list--collapsed .list__head {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.35rem;
+  border-bottom: 0;
+}
+
+
 .list__cards {
   flex: 1;
   list-style: none;
@@ -480,6 +513,16 @@ select {
   word-break: break-word;
 }
 
+.list__title--vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+  cursor: grab;
+}
+
 .quick-add {
   display: flex;
   align-items: center;
@@ -554,6 +597,10 @@ select {
   .list {
     flex-basis: min(85vw, var(--column));
     max-height: none;
+  }
+
+  .list--collapsed {
+    flex-basis: 2.75rem;
   }
 
   .board__title {

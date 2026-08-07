@@ -33,6 +33,7 @@ function renderBoard(overrides: Partial<Parameters<typeof BoardView>[0]> = {}) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  localStorage.clear();
 });
 
 test('every list on the board is rendered in order', () => {
@@ -100,4 +101,37 @@ test('deleting a list asks for confirmation first', async () => {
 test('cards already on a list are shown', () => {
   renderBoard();
   expect(screen.getByText('ship it')).toBeInTheDocument();
+});
+
+test('collapsing a list hides its cards and quick-add but keeps name and count', async () => {
+  renderBoard();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Collapse list TODAY' }));
+
+  expect(screen.queryByText('ship it')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Add a card to TODAY')).not.toBeInTheDocument();
+  const column = screen.getByRole('region', { name: 'List TODAY' });
+  expect(column).toHaveTextContent('TODAY');
+  expect(column).toHaveTextContent('1');
+
+  await userEvent.click(screen.getByRole('button', { name: 'Expand list TODAY' }));
+  expect(screen.getByText('ship it')).toBeInTheDocument();
+});
+
+test('only the toggled list collapses, and the choice is stored per board', async () => {
+  renderBoard();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Collapse list TODAY' }));
+
+  expect(screen.getByRole('button', { name: 'Expand list TODAY' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Collapse list LATER' })).toBeInTheDocument();
+  expect(localStorage.getItem('simplest-fuckn-todo:collapsed:b1')).toBe('["l1"]');
+});
+
+test('a list stored as collapsed renders collapsed on mount', () => {
+  localStorage.setItem('simplest-fuckn-todo:collapsed:b1', '["l1"]');
+  renderBoard();
+
+  expect(screen.queryByText('ship it')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Expand list TODAY' })).toBeInTheDocument();
 });

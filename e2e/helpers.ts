@@ -50,6 +50,13 @@ export function card(page: Page, listName: string, title: string): Locator {
   return list(page, listName).getByRole('button', { name: title, exact: true });
 }
 
+/** Exact, like `card`: the sortable header's accessible name swallows the
+ *  toggle's own label. */
+export function collapseToggle(page: Page, listName: string, collapsed = false): Locator {
+  const label = `${collapsed ? 'Expand' : 'Collapse'} list ${listName}`;
+  return page.getByRole('button', { name: label, exact: true });
+}
+
 export function deleteCardButton(page: Page, title: string): Locator {
   return page.getByRole('button', { name: `Delete card ${title}`, exact: true });
 }
